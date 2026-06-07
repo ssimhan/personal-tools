@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gmail Label Tabs — Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #F5F2E8;
+    --surface: #FAFAF8;
+    --dark: #1C1A15;
+    --border: #E8E4D9;
+    --charcoal: #2B2B2B;
+    --taupe: #7A7469;
+    --muted: #AEAAA0;
+    --teal: #1A9E96;
+    --yellow: #F5C840;
+    --red: #D94F3D;
+
+    /* label colors from Gmail */
+    --sandhya: #9B59B6;
+    --career: #E67E22;
+    --side: #2C3E50;
+    --kids: #8E44AD;
+    --financial: #27AE60;
+    --friends: #F39C12;
+    --house: #C0392B;
+    --family: #9B59B6;
+    --random: #7F8C8D;
+    --cc: #34495E;
+    --chatting: #F1C40F;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #e8e5db;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+  }
+
+  .browser-chrome {
+    width: 100%;
+    max-width: 1200px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  /* ── Browser bar ── */
+  .browser-bar {
+    background: #3C3C3C;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .browser-dots { display: flex; gap: 6px; }
+  .browser-dots span {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .dot-red { background: #FF5F57; }
+  .dot-yellow { background: #FFBD2E; }
+  .dot-green { background: #28C840; }
+  .address-bar {
+    flex: 1;
+    background: #525252;
+    border-radius: 6px;
+    padding: 5px 12px;
+    color: #ccc;
+    font-size: 12px;
+    font-family: monospace;
+  }
+
+  /* ── Gmail header ── */
+  .gmail-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .gmail-logo {
+    font-size: 22px;
+    color: var(--taupe);
+    font-weight: 300;
+    letter-spacing: -0.5px;
+  }
+  .gmail-logo span { color: var(--red); font-weight: 500; }
+  .gmail-search {
+    flex: 1;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 8px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--taupe);
+    outline: none;
+    max-width: 600px;
+  }
+  .gmail-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--sandhya);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 13px; font-weight: 600;
+  }
+
+  /* ── Gmail sidebar + main ── */
+  .gmail-body {
+    display: flex;
+    background: var(--surface);
+    min-height: 600px;
+  }
+
+  /* ── Sidebar ── */
+  .gmail-sidebar {
+    width: 200px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 12px 0;
+    flex-shrink: 0;
+  }
+  .sidebar-compose {
+    margin: 0 12px 16px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--charcoal);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-compose::before { content: '✏️'; font-size: 14px; }
+  .sidebar-item {
+    padding: 6px 16px;
+    font-size: 13px;
+    color: var(--taupe);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-radius: 0 20px 20px 0;
+    margin-right: 12px;
+  }
+  .sidebar-item.active {
+    background: var(--cream);
+    color: var(--charcoal);
+    font-weight: 500;
+  }
+  .sidebar-item .icon { font-size: 15px; width: 18px; }
+  .sidebar-count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--charcoal);
+    font-weight: 600;
+  }
+
+  /* ── Main inbox area ── */
+  .gmail-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── EXTENSION: Primary tab bar ── */
+  .ext-tab-bar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ext-tab-bar::-webkit-scrollbar { display: none; }
+
+  .ext-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 16px 10px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--taupe);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .ext-tab:hover { color: var(--charcoal); }
+  .ext-tab.active {
+    color: var(--charcoal);
+    font-weight: 500;
+    border-bottom-color: var(--teal);
+  }
+  .tab-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tab-count {
+    background: var(--teal);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+  }
+  .tab-count.muted {
+    background: var(--border);
+    color: var(--taupe);
+  }
+
+  /* ── EXTENSION: Sub-tab bar ── */
+  .ext-subtab-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ext-subtab {
+    padding: 7px 12px;
+    font-size: 12px;
+    color: var(--taupe);
+    cursor: pointer;
+    border-radius: 6px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .ext-subtab:hover { background: var(--cream); color: var(--charcoal); }
+  .ext-subtab.active {
+    background: var(--cream);
+    color: var(--teal);
+    font-weight: 500;
+  }
+  .subtab-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .subtab-count {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ── Toolbar (select all, etc.) ── */
+  .inbox-toolbar {
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar-check {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface);
+  }
+  .toolbar-btn {
+    font-size: 12px;
+    color: var(--taupe);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .toolbar-btn:hover { background: var(--cream); }
+  .toolbar-spacer { flex: 1; }
+  .toolbar-paging { font-size: 12px; color: var(--muted); }
+
+  /* ── Email rows ── */
+  .email-list { flex: 1; overflow-y: auto; }
+
+  .email-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    position: relative;
+  }
+  .email-row:hover { background: var(--cream); }
+  .email-row.unread { background: var(--surface); }
+  .email-row.unread .email-sender { font-weight: 600; color: var(--charcoal); }
+  .email-row.unread .email-subject { font-weight: 600; color: var(--charcoal); }
+
+  .email-check {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .email-star { font-size: 14px; color: var(--border); flex-shrink: 0; }
+  .email-star.starred { color: var(--yellow); }
+
+  .email-sender {
+    width: 160px;
+    font-size: 13px;
+    color: var(--taupe);
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .email-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .email-subject {
+    font-size: 13px;
+    color: var(--charcoal);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+  }
+  .email-preview {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .email-preview::before { content: '—  '; }
+
+  .email-label {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .email-date {
+    font-size: 12px;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-width: 50px;
+    text-align: right;
+  }
+  .email-row.unread .email-date { color: var(--charcoal); font-weight: 500; }
+
+  /* label color chips */
+  .lc-career { background: #FEF0E6; color: #E67E22; }
+  .lc-job { background: #FEF0E6; color: #C0541A; }
+  .lc-side { background: #EAECEE; color: #2C3E50; }
+  .lc-financial { background: #E9F7EF; color: #27AE60; }
+
+  /* ── Annotation badge ── */
+  .new-badge {
+    position: absolute;
+    top: -8px; right: -4px;
+    background: var(--teal);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  /* ── Legend below ── */
+  .legend {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    width: 100%;
+    max-width: 1200px;
+  }
+  .legend h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: var(--charcoal);
+    margin-bottom: 14px;
+  }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--taupe);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  .legend-label { color: var(--charcoal); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="browser-chrome">
+  <!-- Browser chrome -->
+  <div class="browser-bar">
+    <div class="browser-dots">
+      <span class="dot-red"></span>
+      <span class="dot-yellow"></span>
+      <span class="dot-green"></span>
+    </div>
+    <div class="address-bar">mail.google.com/mail/u/0/#inbox</div>
+  </div>
+
+  <!-- Gmail header -->
+  <div class="gmail-header">
+    <div class="gmail-logo"><span>G</span>mail</div>
+    <input class="gmail-search" type="text" placeholder="Search mail" readonly>
+    <div class="gmail-avatar">S</div>
+  </div>
+
+  <!-- Gmail body -->
+  <div class="gmail-body">
+
+    <!-- Sidebar -->
+    <div class="gmail-sidebar">
+      <div class="sidebar-compose">Compose</div>
+      <div class="sidebar-item active">
+        <span class="icon">📥</span> Inbox
+        <span class="sidebar-count">12</span>
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">⭐</span> Starred
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">🕐</span> Snoozed
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">📤</span> Sent
+      </div>
+      <div class="sidebar-item">
+        <span class="icon">📝</span> Drafts
+        <span class="sidebar-count">3</span>
+      </div>
+    </div>
+
+    <!-- Main area -->
+    <div class="gmail-main">
+
+      <!-- ✦ EXTENSION: Primary tab bar -->
+      <div class="ext-tab-bar">
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--sandhya)"></div>
+          Sandhya
+          <span class="tab-count">1</span>
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--kids)"></div>
+          Kids
+        </div>
+        <div class="ext-tab active" style="position:relative">
+          <div class="tab-dot" style="background: var(--career)"></div>
+          Career
+          <span class="tab-count">4</span>
+          <span class="new-badge">✦ active</span>
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--financial)"></div>
+          Financial
+          <span class="tab-count">1</span>
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--side)"></div>
+          Side
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--friends)"></div>
+          Friends
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--house)"></div>
+          House
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--family)"></div>
+          Family
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--random)"></div>
+          Random
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--chatting)"></div>
+          Chatting
+        </div>
+        <div class="ext-tab">
+          <div class="tab-dot" style="background: var(--muted)"></div>
+          Unlabeled
+          <span class="tab-count muted">8</span>
+        </div>
+      </div>
+
+      <!-- ✦ EXTENSION: Sub-tab bar (shown when Career is active) -->
+      <div class="ext-subtab-bar">
+        <div class="ext-subtab active">
+          All Career
+          <span class="subtab-count">4</span>
+        </div>
+        <div class="ext-subtab">
+          <div class="subtab-dot" style="background: #E67E22"></div>
+          Job Search
+          <span class="subtab-count">2</span>
+        </div>
+        <div class="ext-subtab">
+          <div class="subtab-dot" style="background: #D35400"></div>
+          Networking
+          <span class="subtab-count">1</span>
+        </div>
+        <div class="ext-subtab">
+          <div class="subtab-dot" style="background: #F0A500"></div>
+          Learning
+          <span class="subtab-count">1</span>
+        </div>
+        <div class="ext-subtab">
+          <div class="subtab-dot" style="background: #C0541A"></div>
+          Current Role
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="inbox-toolbar">
+        <div class="toolbar-check"></div>
+        <div class="toolbar-btn">↻</div>
+        <div class="toolbar-btn">⋮</div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-paging">1–4 of 4</div>
+      </div>
+
+      <!-- Email list -->
+      <div class="email-list">
+
+        <div class="email-row unread">
+          <div class="email-check"></div>
+          <div class="email-star starred">★</div>
+          <div class="email-sender">LinkedIn</div>
+          <div class="email-content">
+            <span class="email-subject">3 new jobs matching "Product Manager"</span>
+            <span class="email-preview">Senior PM at Notion, PM Lead at Linear, Growth PM at...</span>
+          </div>
+          <span class="email-label lc-job">Job Search</span>
+          <div class="email-date">10:42 am</div>
+        </div>
+
+        <div class="email-row unread">
+          <div class="email-check"></div>
+          <div class="email-star"></div>
+          <div class="email-sender">Sarah Chen</div>
+          <div class="email-content">
+            <span class="email-subject">Re: Coffee chat this week?</span>
+            <span class="email-preview">Would Thursday afternoon work for you? Happy to meet at...</span>
+          </div>
+          <span class="email-label lc-career">Networking</span>
+          <div class="email-date">9:15 am</div>
+        </div>
+
+        <div class="email-row">
+          <div class="email-check"></div>
+          <div class="email-star starred">★</div>
+          <div class="email-sender">Coursera</div>
+          <div class="email-content">
+            <span class="email-subject">Your certificate is ready to download</span>
+            <span class="email-preview">Congratulations! You've completed Product Strategy...</span>
+          </div>
+          <span class="email-label lc-side">Learning</span>
+          <div class="email-date">Jun 5</div>
+        </div>
+
+        <div class="email-row">
+          <div class="email-check"></div>
+          <div class="email-star"></div>
+          <div class="email-sender">Greenhouse</div>
+          <div class="email-content">
+            <span class="email-subject">Application update — Acme Corp</span>
+            <span class="email-preview">Thank you for your interest in the Senior PM role. We have...</span>
+          </div>
+          <span class="email-label lc-job">Job Search</span>
+          <div class="email-date">Jun 4</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <h3>Design Notes</h3>
+  <div class="legend-grid">
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--teal)"></div>
+      <div>
+        <span class="legend-label">Teal underline</span> — active tab indicator,
+        matches your brand's interactive accent color
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--career)"></div>
+      <div>
+        <span class="legend-label">Label color dots</span> — pulled from your
+        existing Gmail label colors so it feels familiar
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--cream)"></div>
+      <div>
+        <span class="legend-label">Warm Cream #F5F2E8</span> — tab bar
+        background, distinct from Gmail's white but not jarring
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--yellow)"></div>
+      <div>
+        <span class="legend-label">Sub-tab row</span> — appears only when a tab
+        is active; "All Career" is always first for rollup view
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--muted)"></div>
+      <div>
+        <span class="legend-label">Unlabeled tab</span> — muted count badge so
+        it doesn't compete visually with your real categories
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--charcoal)"></div>
+      <div>
+        <span class="legend-label">DM Sans throughout</span> — matches your
+        brand guide's UI font for a cohesive feel
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

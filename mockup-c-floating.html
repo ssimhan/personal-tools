@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option C — Floating Pill Bar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #F5F2E8;
+    --surface: #FAFAF8;
+    --border: #E8E4D9;
+    --charcoal: #2B2B2B;
+    --taupe: #7A7469;
+    --muted: #AEAAA0;
+    --teal: #1A9E96;
+    --teal-light: #E8F7F6;
+    --yellow: #F5C840;
+    --red: #D94F3D;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #e8e5db;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    gap: 20px;
+  }
+
+  .label {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--charcoal);
+    align-self: flex-start;
+    max-width: 1200px;
+    width: 100%;
+  }
+  .label span { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--taupe); font-weight: 400; margin-left: 10px; }
+
+  .browser-chrome {
+    width: 100%;
+    max-width: 1200px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  .browser-bar {
+    background: #3C3C3C; padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .browser-dots { display: flex; gap: 6px; }
+  .browser-dots span { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #FF5F57; }
+  .dot-yellow { background: #FFBD2E; }
+  .dot-green { background: #28C840; }
+  .address-bar {
+    flex: 1; background: #525252; border-radius: 6px;
+    padding: 5px 12px; color: #ccc; font-size: 12px; font-family: monospace;
+  }
+
+  .gmail-header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 20px; display: flex; align-items: center; gap: 16px;
+  }
+  .gmail-logo { font-size: 22px; color: var(--taupe); font-weight: 300; }
+  .gmail-logo span { color: var(--red); font-weight: 500; }
+  .gmail-search {
+    flex: 1; max-width: 600px;
+    background: var(--cream); border: 1px solid var(--border); border-radius: 24px;
+    padding: 8px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--taupe);
+  }
+  .gmail-avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: #9B59B6;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 13px; font-weight: 600;
+  }
+
+  .gmail-body { display: flex; background: var(--surface); min-height: 620px; }
+
+  .gmail-sidebar {
+    width: 180px; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 12px 0; flex-shrink: 0;
+  }
+  .sidebar-compose {
+    margin: 0 12px 16px; background: var(--cream); border: 1px solid var(--border);
+    border-radius: 20px; padding: 10px 16px; font-size: 13px; font-weight: 500;
+    color: var(--charcoal); display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-compose::before { content: '✏️'; }
+  .sidebar-item {
+    padding: 6px 16px; font-size: 13px; color: var(--taupe);
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 0 20px 20px 0; margin-right: 12px;
+  }
+  .sidebar-item.active { background: var(--cream); color: var(--charcoal); font-weight: 500; }
+  .sidebar-count { margin-left: auto; font-size: 11px; color: var(--charcoal); font-weight: 600; }
+
+  /* ── Main area ── */
+  .gmail-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── EXTENSION: Floating pill bar ── */
+  .ext-float-wrapper {
+    padding: 12px 20px 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Scrollable pill row */
+  .ext-pill-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 12px;
+  }
+  .ext-pill-row::-webkit-scrollbar { display: none; }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--taupe);
+    background: var(--cream);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .pill:hover {
+    border-color: var(--teal);
+    color: var(--charcoal);
+  }
+  .pill.active {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(26,158,150,0.3);
+  }
+  .pill-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .pill.active .pill-dot { background: rgba(255,255,255,0.7); }
+  .pill-count {
+    font-size: 11px; font-weight: 600;
+    background: rgba(0,0,0,0.08);
+    padding: 0 5px; border-radius: 8px;
+  }
+  .pill.active .pill-count { background: rgba(255,255,255,0.25); color: white; }
+
+  /* Sub-pill row — appears when a tab is active */
+  .ext-subpill-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 0 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-top: -4px;
+  }
+  .ext-subpill-row::-webkit-scrollbar { display: none; }
+
+  .subpill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--taupe);
+    background: transparent;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.12s;
+    flex-shrink: 0;
+  }
+  .subpill:hover { background: var(--cream); color: var(--charcoal); }
+  .subpill.active {
+    background: var(--teal-light);
+    border-color: var(--teal);
+    color: var(--teal);
+    font-weight: 500;
+  }
+  .subpill-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .subpill-count { font-size: 10px; color: var(--muted); }
+  .subpill.active .subpill-count { color: var(--teal); }
+
+  /* scroll fade hints */
+  .scroll-hint-right {
+    position: absolute;
+    right: 0;
+    top: 0; bottom: 0;
+    width: 40px;
+    background: linear-gradient(to right, transparent, var(--surface));
+    pointer-events: none;
+  }
+
+  /* ── Toolbar ── */
+  .inbox-toolbar {
+    padding: 8px 20px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar-check { width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 3px; }
+  .toolbar-btn { font-size: 12px; color: var(--taupe); padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+  .toolbar-spacer { flex: 1; }
+  .toolbar-paging { font-size: 12px; color: var(--muted); }
+
+  /* ── Email list ── */
+  .email-list { flex: 1; overflow-y: auto; }
+
+  .email-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s;
+  }
+  .email-row:hover { background: var(--cream); }
+  .email-row.unread .email-sender,
+  .email-row.unread .email-subject { font-weight: 600; color: var(--charcoal); }
+  .email-row.unread .email-date { color: var(--charcoal); font-weight: 500; }
+
+  .email-check { width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 3px; flex-shrink: 0; }
+  .email-star { font-size: 14px; color: var(--border); flex-shrink: 0; }
+  .email-star.starred { color: var(--yellow); }
+  .email-sender { width: 150px; font-size: 13px; color: var(--taupe); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .email-content { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .email-subject { font-size: 13px; color: var(--charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+  .email-preview { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .email-preview::before { content: '—  '; }
+  .email-label { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; flex-shrink: 0; }
+  .email-date { font-size: 12px; color: var(--muted); flex-shrink: 0; min-width: 50px; text-align: right; }
+
+  .lc-career { background: #FEF0E6; color: #E67E22; }
+  .lc-job { background: #FEF0E6; color: #C0541A; }
+  .lc-network { background: #FDE8D8; color: #A04000; }
+
+  /* ── Legend ── */
+  .legend {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px;
+    width: 100%; max-width: 1200px;
+  }
+  .legend h3 { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--charcoal); margin-bottom: 14px; }
+  .legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+  .legend-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--taupe); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+  .legend-label { color: var(--charcoal); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="label">Option C — Floating Pill Bar <span>scrollable pills above the email list, visually distinct from Gmail's UI</span></div>
+
+<div class="browser-chrome">
+  <div class="browser-bar">
+    <div class="browser-dots">
+      <span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span>
+    </div>
+    <div class="address-bar">mail.google.com/mail/u/0/#inbox</div>
+  </div>
+
+  <div class="gmail-header">
+    <div class="gmail-logo"><span>G</span>mail</div>
+    <input class="gmail-search" type="text" placeholder="Search mail" readonly>
+    <div class="gmail-avatar">S</div>
+  </div>
+
+  <div class="gmail-body">
+
+    <div class="gmail-sidebar">
+      <div class="sidebar-compose">Compose</div>
+      <div class="sidebar-item active">📥 Inbox <span class="sidebar-count">12</span></div>
+      <div class="sidebar-item">⭐ Starred</div>
+      <div class="sidebar-item">🕐 Snoozed</div>
+      <div class="sidebar-item">📤 Sent</div>
+      <div class="sidebar-item">📝 Drafts <span class="sidebar-count">3</span></div>
+    </div>
+
+    <div class="gmail-main">
+
+      <!-- EXTENSION: Floating pill bar -->
+      <div class="ext-float-wrapper">
+
+        <!-- Primary pills -->
+        <div class="ext-pill-row">
+          <div class="pill">
+            <div class="pill-dot" style="background:#9B59B6"></div>
+            Sandhya
+            <span class="pill-count">1</span>
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#8E44AD"></div>
+            Kids
+          </div>
+          <div class="pill active">
+            <div class="pill-dot"></div>
+            Career
+            <span class="pill-count">4</span>
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#27AE60"></div>
+            Financial
+            <span class="pill-count">1</span>
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#2C3E50"></div>
+            Side
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#F39C12"></div>
+            Friends
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#C0392B"></div>
+            House
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#9B59B6"></div>
+            Family
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#7F8C8D"></div>
+            Random
+          </div>
+          <div class="pill">
+            <div class="pill-dot" style="background:#F1C40F"></div>
+            Chatting
+          </div>
+          <div class="pill" style="opacity:0.65">
+            <div class="pill-dot" style="background:#AEAAA0"></div>
+            Unlabeled
+            <span class="pill-count">8</span>
+          </div>
+        </div>
+
+        <!-- Sub-pills — visible when Career is active -->
+        <div class="ext-subpill-row">
+          <div class="subpill active">
+            All Career
+            <span class="subpill-count">4</span>
+          </div>
+          <div class="subpill">
+            <div class="subpill-dot" style="background:#C0541A"></div>
+            Job Search
+            <span class="subpill-count">2</span>
+          </div>
+          <div class="subpill">
+            <div class="subpill-dot" style="background:#D35400"></div>
+            Networking
+            <span class="subpill-count">1</span>
+          </div>
+          <div class="subpill">
+            <div class="subpill-dot" style="background:#F0A500"></div>
+            Learning
+            <span class="subpill-count">1</span>
+          </div>
+          <div class="subpill">
+            <div class="subpill-dot" style="background:#A04000"></div>
+            Current Role
+            <span class="subpill-count">0</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Toolbar -->
+      <div class="inbox-toolbar">
+        <div class="toolbar-check"></div>
+        <div class="toolbar-btn">↻</div>
+        <div class="toolbar-btn">⋮</div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-paging">1–4 of 4</div>
+      </div>
+
+      <!-- Email list -->
+      <div class="email-list">
+        <div class="email-row unread">
+          <div class="email-check"></div>
+          <div class="email-star starred">★</div>
+          <div class="email-sender">LinkedIn</div>
+          <div class="email-content">
+            <span class="email-subject">3 new jobs matching "Product Manager"</span>
+            <span class="email-preview">Senior PM at Notion, PM Lead at Linear, Growth PM at...</span>
+          </div>
+          <span class="email-label lc-job">Job Search</span>
+          <div class="email-date">10:42 am</div>
+        </div>
+
+        <div class="email-row unread">
+          <div class="email-check"></div>
+          <div class="email-star"></div>
+          <div class="email-sender">Sarah Chen</div>
+          <div class="email-content">
+            <span class="email-subject">Re: Coffee chat this week?</span>
+            <span class="email-preview">Would Thursday afternoon work for you?</span>
+          </div>
+          <span class="email-label lc-network">Networking</span>
+          <div class="email-date">9:15 am</div>
+        </div>
+
+        <div class="email-row">
+          <div class="email-check"></div>
+          <div class="email-star starred">★</div>
+          <div class="email-sender">Coursera</div>
+          <div class="email-content">
+            <span class="email-subject">Your certificate is ready to download</span>
+            <span class="email-preview">Congratulations! You've completed Product Strategy...</span>
+          </div>
+          <span class="email-label lc-career">Learning</span>
+          <div class="email-date">Jun 5</div>
+        </div>
+
+        <div class="email-row">
+          <div class="email-check"></div>
+          <div class="email-star"></div>
+          <div class="email-sender">Greenhouse</div>
+          <div class="email-content">
+            <span class="email-subject">Application update — Acme Corp</span>
+            <span class="email-preview">Thank you for your interest in the Senior PM role...</span>
+          </div>
+          <span class="email-label lc-job">Job Search</span>
+          <div class="email-date">Jun 4</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <h3>Option C — Design Notes</h3>
+  <div class="legend-grid">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--teal)"></div>
+      <div><span class="legend-label">Scrollable pill row</span> — all 12 labels fit; user scrolls horizontally if needed. Most visible labels stay in view.</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--cream)"></div>
+      <div><span class="legend-label">Active pill fills teal</span> — clearly "yours", visually distinct from Gmail's native UI chrome</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#E67E22"></div>
+      <div><span class="legend-label">Sub-pills appear below</span> — a second smaller row of outline pills for sub-labels when a category is active</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--muted)"></div>
+      <div><span class="legend-label">Unlabeled is de-emphasized</span> — slightly muted pill so it doesn't compete with your real categories</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
