@@ -4,11 +4,13 @@ Personal Chrome MV3 extension that adds a warm, scrollable label pill bar above 
 
 ## What It Does
 
-- Shows only label categories that currently have inbox mail.
-- Rolls up sub-labels into their parent category.
-- Shows direct sub-label pills after selecting a category.
+- Shows only label categories that currently have inbox mail in a scrollable pill bar.
+- Rolls up sub-labels into their parent category; expands on click.
+- Visual design: unread count badge appears on all pills; colored background tint only on labels with unreads (reduces visual clutter).
+- All Inbox pill clears filters and shows complete inbox.
 - Keeps every generated search scoped to `in:inbox`.
-- Uses Gmail's own search results view instead of rendering email threads itself.
+- Uses Gmail's own search results view — no custom thread rendering.
+- Click-safe: injection into `document.body` with `position:fixed` avoids blocking Gmail's pointer events during its re-render cycle.
 
 ## Local Setup
 

@@ -22,7 +22,8 @@ beforeEach(() => {
 test('renders top-level pills and strips numeric prefixes', () => {
   document.body.appendChild(PB.createPillBar(activeLabels, false));
 
-  expect(document.querySelectorAll('.glt-pill[data-label-id]').length).toBe(2);
+  // All Inbox pill + one per active label
+  expect(document.querySelectorAll('.glt-pill[data-label-id]').length).toBe(3);
   expect(document.body.textContent).toContain('Sandhya');
   expect(document.body.textContent).toContain('Career');
   expect(document.body.textContent).not.toContain('1 - Sandhya');

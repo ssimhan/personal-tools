@@ -33,54 +33,78 @@ const PillBar = (() => {
     return createElement('span', { className: 'glt-badge' }, [String(count)]);
   }
 
-  function colorDot(className, color) {
-    return createElement('span', {
-      className,
-      style: { backgroundColor: color || '#AEAAA0' },
-      'aria-hidden': 'true'
-    });
+  function colorWithAlpha(color, alpha) {
+    if (!color) return null;
+    const hex = String(color).replace('#', '');
+    if (hex.length !== 6) return null;
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+  }
+
+  function applyTint(element, color, unread) {
+    if (unread > 0) {
+      const tint = colorWithAlpha(color, 0.15);
+      if (tint) element.style.setProperty('--glt-tint', tint);
+    }
   }
 
   function createPill(label, isActive) {
-    return createElement('button', {
+    const pill = createElement('button', {
       className: 'glt-pill' + (isActive ? ' glt-pill--active' : ''),
       type: 'button',
       'data-label-id': label.id,
       'data-label-name': label.name,
       title: displayName(label.name)
     }, [
-      colorDot('glt-dot', label.color),
       createElement('span', { className: 'glt-name' }, [displayName(label.name)]),
       badge(label.unread)
+    ]);
+    applyTint(pill, label.color, label.unread);
+    return pill;
+  }
+
+  function createAllInboxPill(isActive) {
+    return createElement('button', {
+      className: 'glt-pill' + (isActive ? ' glt-pill--active' : ''),
+      type: 'button',
+      'data-label-id': '__all__',
+      'data-label-name': '__all__',
+      title: 'All Inbox'
+    }, [
+      createElement('span', { className: 'glt-name' }, ['All Inbox'])
     ]);
   }
 
   function createUnlabeledPill(hasUnread) {
-    return createElement('button', {
+    const pill = createElement('button', {
       className: 'glt-pill glt-pill--unlabeled',
       type: 'button',
       'data-label-id': '__unlabeled__',
       'data-label-name': '__unlabeled__',
       title: 'Unlabeled'
     }, [
-      colorDot('glt-dot', '#AEAAA0'),
       createElement('span', { className: 'glt-name' }, ['Unlabeled']),
       badge(hasUnread)
     ]);
+    applyTint(pill, '#AEAAA0', hasUnread);
+    return pill;
   }
 
   function createSubPill(label, isActive) {
-    return createElement('button', {
+    const pill = createElement('button', {
       className: 'glt-subpill' + (isActive ? ' glt-subpill--active' : ''),
       type: 'button',
       'data-label-id': label.id,
       'data-label-name': label.name,
       title: displayName(label.name)
     }, [
-      colorDot('glt-subdot', label.color),
       createElement('span', { className: 'glt-subname' }, [displayName(label.name)]),
       badge(label.unread)
     ]);
+    applyTint(pill, label.color, label.unread);
+    return pill;
   }
 
   function createAllSubPill(parentLabel, isActive) {
@@ -106,6 +130,8 @@ const PillBar = (() => {
       createElement('div', { className: 'glt-pill-row' })
     ]);
     const row = pillRow.querySelector('.glt-pill-row');
+
+    row.appendChild(createAllInboxPill(!activeLabelId || activeLabelId === '__all__'));
 
     activeLabels.forEach(label => {
       row.appendChild(createPill(label, label.id === activeLabelId));

@@ -9,7 +9,9 @@ const Injector = (() => {
     initialized: false,
     injecting: false,
     token: null,
-    tree: []
+    tree: [],
+    anchorParent: null,
+    anchorParentOriginalPadding: ''
   };
 
   function deps() {
@@ -21,12 +23,35 @@ const Injector = (() => {
     };
   }
 
+  function isConversationOpen() {
+    // An open thread looks like "#inbox/<threadId>" or "#search/<q>/<threadId>".
+    // A plain list view is "#inbox", "#inbox/p2" (pagination), or "#search/<q>".
+    const hash = window.location.hash || '';
+    const segments = hash.replace(/^#/, '').split('/');
+
+    if (segments[0] === 'inbox') {
+      const tail = segments[1];
+      // No tail, or pagination markers like "p2", are still list views.
+      return !!tail && !/^p\d+$/.test(tail);
+    }
+
+    if (segments[0] === 'search') {
+      // #search/<query> is a list; #search/<query>/<threadId> is open.
+      return segments.length > 2;
+    }
+
+    return false;
+  }
+
   function isRelevantGmailView() {
     const hash = window.location.hash || '';
-    return hash === '' ||
+    const isInboxOrSearch = hash === '' ||
       hash === '#inbox' ||
       hash.indexOf('#inbox') === 0 ||
       hash.indexOf('#search') === 0;
+
+    // Stay out of the way while a single email is open.
+    return isInboxOrSearch && !isConversationOpen();
   }
 
   function findAnchor() {
@@ -41,6 +66,35 @@ const Injector = (() => {
   function removeExisting() {
     const existing = document.getElementById(INJECTION_ID);
     if (existing) existing.remove();
+    if (state.anchorParent) {
+      state.anchorParent.style.paddingTop = state.anchorParentOriginalPadding;
+      state.anchorParent = null;
+      state.anchorParentOriginalPadding = '';
+    }
+  }
+
+  function positionAndInsert(wrapper, anchor) {
+    // Insert onto document.body (NOT into Gmail's DOM) to avoid triggering
+    // Gmail's MutationObserver, which disables pointer-events on div[role="main"]
+    // during its re-render cycle. Inserting inside Gmail's DOM caused all email
+    // row clicks to silently fail until Gmail's re-render settled — even before
+    // any label pill was clicked. Using position:fixed + body-append sidesteps
+    // Gmail's DOM entirely. padding-top on the anchor parent compensates for the
+    // space the pill bar occupies.
+    const rect = anchor.getBoundingClientRect();
+    wrapper.style.top = rect.top + 'px';
+    wrapper.style.left = rect.left + 'px';
+    wrapper.style.right = '0';
+
+    document.body.appendChild(wrapper);
+
+    state.anchorParent = anchor.parentNode;
+    state.anchorParentOriginalPadding = anchor.parentNode.style.paddingTop || '';
+
+    window.requestAnimationFrame(() => {
+      if (!state.anchorParent) return;
+      state.anchorParent.style.paddingTop = wrapper.offsetHeight + 'px';
+    });
   }
 
   function showError(anchor, message) {
@@ -130,20 +184,21 @@ const Injector = (() => {
     return { activeNodes, unlabeledUnread };
   }
 
-  async function loadVisibleChildren(token, parentNode) {
-    const children = parentNode.children || [];
-    parentNode.children = children.filter(child => child.present);
-    return parentNode.children;
+  function getVisibleChildren(parentNode) {
+    return (parentNode.children || []).filter(child => child.present);
   }
 
   function getInboxRows() {
     const anchor = findAnchor();
     if (!anchor) return [];
 
-    const rows = Array.from(anchor.querySelectorAll('tr'));
+    // Scope strictly to Gmail inbox-list rows (tr.zA). Grabbing every <tr>
+    // would also catch the rows that make up an open conversation and hide
+    // the message you just opened.
+    const rows = Array.from(anchor.querySelectorAll('tr.zA'));
     if (rows.length > 0) return rows;
 
-    return Array.from(document.querySelectorAll('div[role="main"] tr'));
+    return Array.from(document.querySelectorAll('div[role="main"] tr.zA'));
   }
 
   function normalizeText(text) {
@@ -195,6 +250,33 @@ const Injector = (() => {
     });
   }
 
+  function clearRowFilter() {
+    getInboxRows().forEach(row => row.classList.remove('glt-row-hidden'));
+  }
+
+  function reapplyActiveFilter() {
+    if (!state.activeLabelId || state.activeLabelId === '__all__') {
+      clearRowFilter();
+      return;
+    }
+    if (state.activeLabelId === '__unlabeled__') {
+      applyUnlabeledRowFilter();
+      return;
+    }
+    const parentNode = state.activeNodes.find(n => n.id === state.activeLabelId);
+    if (!parentNode) return;
+    if (state.activeSubId) {
+      const subNode = (parentNode.children || []).find(c => c.id === state.activeSubId);
+      if (subNode) { applyRowFilterForNode(subNode); return; }
+    }
+    applyRowFilterForNode(parentNode);
+  }
+
+  function navigateToNode(node) {
+    applyRowFilterForNode(node);
+    window.setTimeout(reapplyActiveFilter, 500);
+  }
+
   function setActivePill(wrapper, labelId) {
     wrapper.querySelectorAll('.glt-pill').forEach(pill => {
       pill.classList.toggle('glt-pill--active', pill.getAttribute('data-label-id') === labelId);
@@ -212,10 +294,18 @@ const Injector = (() => {
     state.activeSubId = null;
     setActivePill(wrapper, labelId);
 
-    if (labelId === '__unlabeled__') {
-      const { PillBar, SearchQuery } = deps();
+    if (labelId === '__all__') {
+      const { PillBar } = deps();
       PillBar.hideSubPills(wrapper);
-      navigateToQuery(SearchQuery.buildUnlabeledQuery());
+      clearRowFilter();
+      return;
+    }
+
+    if (labelId === '__unlabeled__') {
+      const { PillBar } = deps();
+      PillBar.hideSubPills(wrapper);
+      applyUnlabeledRowFilter();
+      window.setTimeout(reapplyActiveFilter, 500);
       return;
     }
 
@@ -225,9 +315,9 @@ const Injector = (() => {
 
     navigateToNode(parentNode);
 
-    await loadVisibleChildren(state.token, parentNode);
-    if (parentNode.children.length > 0) {
-      PillBar.showSubPills(wrapper, parentNode, null);
+    const visibleChildren = getVisibleChildren(parentNode);
+    if (visibleChildren.length > 0) {
+      PillBar.showSubPills(wrapper, { ...parentNode, children: visibleChildren }, null);
     } else {
       PillBar.hideSubPills(wrapper);
     }
@@ -256,13 +346,14 @@ const Injector = (() => {
     pillRow.addEventListener('click', event => {
       const pill = event.target.closest('[data-label-id]');
       if (!pill) return;
+      event.stopPropagation();
       selectTopLevel(wrapper, pill.getAttribute('data-label-id'));
     });
 
     subRow.addEventListener('click', event => {
       const pill = event.target.closest('[data-label-id]');
       if (!pill || !state.activeLabelId) return;
-
+      event.stopPropagation();
       const parentNode = state.activeNodes.find(node => node.id === state.activeLabelId);
       if (parentNode) selectSubLevel(wrapper, parentNode, pill);
     });
@@ -275,9 +366,9 @@ const Injector = (() => {
     const parentNode = state.activeNodes.find(node => node.id === state.activeLabelId);
     if (!parentNode) return;
 
-    await loadVisibleChildren(state.token, parentNode);
-    if (parentNode.children.length > 0) {
-      PillBar.showSubPills(wrapper, parentNode, state.activeSubId);
+    const visibleChildren = getVisibleChildren(parentNode);
+    if (visibleChildren.length > 0) {
+      PillBar.showSubPills(wrapper, { ...parentNode, children: visibleChildren }, state.activeSubId);
     }
   }
 
@@ -318,7 +409,7 @@ const Injector = (() => {
       wrapper.id = INJECTION_ID;
 
       bindEvents(wrapper);
-      anchor.parentNode.insertBefore(wrapper, anchor);
+      positionAndInsert(wrapper, anchor);
       await restoreActiveSubRow(wrapper);
     } catch (error) {
       console.error('[GmailLabelTabs] Could not inject pill bar:', error);
@@ -331,8 +422,13 @@ const Injector = (() => {
     }
   }
 
+  let injectTimer = null;
   function scheduleInject() {
-    window.setTimeout(inject, RETRY_DELAY_MS);
+    if (injectTimer) window.clearTimeout(injectTimer);
+    injectTimer = window.setTimeout(() => {
+      injectTimer = null;
+      inject();
+    }, RETRY_DELAY_MS);
   }
 
   function init() {
