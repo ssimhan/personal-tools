@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gmail Label Tabs</title>
+  <style>
+    :root {
+      --cream: #F5F2E8;
+      --surface: #FAFAF8;
+      --text: #2B2B2B;
+      --muted: #7A7469;
+      --border: #E8E4D9;
+      --teal: #1A9E96;
+      --red: #D94F3D;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 260px;
+      margin: 0;
+      padding: 18px;
+      background: var(--cream);
+      color: var(--text);
+      font-family: "DM Sans", Inter, Arial, sans-serif;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    button {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--teal);
+      border-radius: 8px;
+      background: var(--teal);
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      border-color: var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: default;
+    }
+
+    #status {
+      min-height: 16px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    #status.error {
+      color: var(--red);
+    }
+  </style>
+</head>
+<body>
+  <h1>Gmail Label Tabs</h1>
+  <p>Connect Gmail, then reload your inbox to see dynamic label pills.</p>
+  <button id="signin" type="button">Connect Gmail</button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

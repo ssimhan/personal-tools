@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail Label Tabs",
+  "version": "1.0.0",
+  "description": "Organizes Gmail inbox into dynamic label-based pill tabs.",
+  "permissions": ["identity", "storage"],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://gmail.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "1085816986196-0440tklkkqsru6lathbve04nuv6j2v4d.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/gmail.readonly"]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": [
+        "lib/label-hierarchy.js",
+        "lib/search-query.js",
+        "lib/api-client.js",
+        "lib/pill-bar.js",
+        "lib/injector.js"
+      ],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
