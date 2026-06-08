@@ -1,6 +1,6 @@
 .glt-wrapper {
   position: fixed;
-  z-index: 1000;
+  z-index: 100;
   box-sizing: border-box;
   border-bottom: 1px solid #E8E4D9;
   background: #F5F2E8;
