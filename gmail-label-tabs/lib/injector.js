@@ -136,6 +136,7 @@ const Injector = (() => {
   }
 
   function annotatePresenceFromMessages(nodes, messages) {
+    // Mutates node.present and node.unread in place on state.tree nodes.
     (nodes || []).forEach(node => {
       node.present = countMessagesForNode(node, messages, false) > 0;
       node.unread = countMessagesForNode(node, messages, true);
@@ -270,25 +271,23 @@ const Injector = (() => {
   }
 
   async function selectTopLevel(wrapper, labelId) {
+    const { PillBar } = deps();
     state.activeLabelId = labelId;
     state.activeSubId = null;
     setActiveState(wrapper, '.glt-pill', 'glt-pill--active', labelId);
 
     if (labelId === '__all__') {
-      const { PillBar } = deps();
       PillBar.hideSubPills(wrapper);
       clearRowFilter();
       return;
     }
 
     if (labelId === '__unlabeled__') {
-      const { PillBar } = deps();
       PillBar.hideSubPills(wrapper);
       applyUnlabeledRowFilter();
       return;
     }
 
-    const { PillBar } = deps();
     const parentNode = state.activeNodes.find(node => node.id === labelId);
     if (!parentNode) return;
 
@@ -351,15 +350,19 @@ const Injector = (() => {
     }
   }
 
-  async function renderFromData(rawLabels, messages, anchor) {
-    const { LabelHierarchy, PillBar } = deps();
-
-    removeExisting();
-
+  function updateState(rawLabels, messages) {
+    const { LabelHierarchy } = deps();
     state.tree = LabelHierarchy.buildTree(rawLabels);
     const pillData = buildPillDataFromMessages(state.tree, messages);
     state.activeNodes = pillData.activeNodes;
+    return pillData;
+  }
 
+  async function renderFromData(rawLabels, messages, anchor) {
+    const { PillBar } = deps();
+    const pillData = updateState(rawLabels, messages);
+
+    removeExisting();
     if (state.activeNodes.length === 0 && pillData.unlabeledUnread === false) return;
 
     const wrapper = PillBar.createPillBar(
@@ -373,15 +376,25 @@ const Injector = (() => {
     await restoreActiveSubRow(wrapper);
   }
 
-  async function loadAndCacheData(token) {
-    const { ApiClient, Cache } = deps();
+  async function fetchData(token) {
+    const { ApiClient } = deps();
     const rawLabels = await ApiClient.fetchLabels(token);
     const messages = await ApiClient.fetchInboxMessageLabelSets(token);
+    return { rawLabels, messages };
+  }
+
+  async function cacheData(rawLabels, messages) {
+    const { Cache } = deps();
     if (Cache) {
       await Cache.set('labels', rawLabels, LABEL_TTL_MS);
       await Cache.set('messages', messages, MESSAGES_TTL_MS);
     }
-    return { rawLabels, messages };
+  }
+
+  async function loadAndCacheData(token) {
+    const data = await fetchData(token);
+    await cacheData(data.rawLabels, data.messages);
+    return data;
   }
 
   async function inject() {
@@ -423,11 +436,13 @@ const Injector = (() => {
 
         // Background refresh — skip if we just injected recently
         if (!isRecent) {
-          loadAndCacheData(state.token)
-            .then(({ rawLabels, messages }) => {
-              // Only re-render if something changed
+          fetchData(state.token)
+            .then(async ({ rawLabels, messages }) => {
+              // JSON.stringify catches any change in label assignment, not just counts.
+              // ≤100 messages, runs ~1ms — sufficient for a background comparison.
               if (JSON.stringify(rawLabels) !== JSON.stringify(cachedLabels) ||
                   JSON.stringify(messages) !== JSON.stringify(cachedMessages)) {
+                await cacheData(rawLabels, messages);
                 const a = findAnchor();
                 if (a) renderFromData(rawLabels, messages, a);
               }

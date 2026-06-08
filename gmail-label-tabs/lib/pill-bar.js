@@ -70,6 +70,8 @@ const PillBar = (() => {
   }
 
   function createAllInboxPill(isActive) {
+    // Not using createPillElement: display text ("All Inbox") differs from data-label-name (__all__),
+    // and this pill never has a badge or tint.
     return createElement('button', {
       className: 'glt-pill' + (isActive ? ' glt-pill--active' : ''),
       type: 'button',
@@ -101,6 +103,8 @@ const PillBar = (() => {
   }
 
   function createAllSubPill(parentLabel, isActive) {
+    // Not using createPillElement: display text is "All {parent}", not displayName(label.name),
+    // and needs the extra data-sub-all attribute that createPillElement doesn't set.
     return createElement('button', {
       className: 'glt-subpill' + (isActive ? ' glt-subpill--active' : ''),
       type: 'button',
