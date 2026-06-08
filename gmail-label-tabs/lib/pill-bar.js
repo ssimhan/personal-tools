@@ -50,19 +50,23 @@ const PillBar = (() => {
     }
   }
 
-  function createPill(label, isActive) {
+  function createPillElement(label, isActive, pillClass, nameClass) {
     const pill = createElement('button', {
-      className: 'glt-pill' + (isActive ? ' glt-pill--active' : ''),
+      className: pillClass + (isActive ? ' ' + pillClass + '--active' : ''),
       type: 'button',
       'data-label-id': label.id,
       'data-label-name': label.name,
       title: displayName(label.name)
     }, [
-      createElement('span', { className: 'glt-name' }, [displayName(label.name)]),
+      createElement('span', { className: nameClass }, [displayName(label.name)]),
       badge(label.unread)
     ]);
     applyTint(pill, label.color, label.unread);
     return pill;
+  }
+
+  function createPill(label, isActive) {
+    return createPillElement(label, isActive, 'glt-pill', 'glt-name');
   }
 
   function createAllInboxPill(isActive) {
@@ -93,18 +97,7 @@ const PillBar = (() => {
   }
 
   function createSubPill(label, isActive) {
-    const pill = createElement('button', {
-      className: 'glt-subpill' + (isActive ? ' glt-subpill--active' : ''),
-      type: 'button',
-      'data-label-id': label.id,
-      'data-label-name': label.name,
-      title: displayName(label.name)
-    }, [
-      createElement('span', { className: 'glt-subname' }, [displayName(label.name)]),
-      badge(label.unread)
-    ]);
-    applyTint(pill, label.color, label.unread);
-    return pill;
+    return createPillElement(label, isActive, 'glt-subpill', 'glt-subname');
   }
 
   function createAllSubPill(parentLabel, isActive) {
