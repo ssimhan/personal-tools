@@ -1,5 +1,27 @@
 # Gmail Label Tabs — Project History
 
+## Phase 2: Performance & Tech Debt (2026-06-07)
+
+**Key Accomplishments:**
+- Implemented stale-while-revalidate caching with `chrome.storage.local` (labels cached 1h, message counts 60s)
+- Added freshness guard to prevent redundant API calls within 60s window
+- Eliminated `MIN_ANCHOR_TOP` layout guard; pill bar now only injects when Gmail layout is stable
+- Refactored pill rendering: split label tree building from DOM rendering; removed per-label fetch antipattern
+- Resolved 2 blocking audit issues: `window.Cache` collision (renamed to `GltCache`), dead `annotateNode` function removal
+- Logged 6 improvement-level tech debt items for future cleanup
+
+**Key Learnings:**
+1. Browser global namespace collisions (e.g., `window.Cache` shadows Service Worker Cache API) silently break host-page feature detection — use project-specific naming (`GltCache`, `GltApiClient`, etc.)
+2. Dead code left after refactoring (functions replaced but not removed) is caught in audit, not pre-commit — use grep during review to verify all defined functions appear in callers
+3. Dependency accessor duplication (`deps()` called multiple times in one function) signals unclear dependency model — call factory once per scope, destructure all deps upfront
+4. Stale-while-revalidate pattern requires explicit freshness guard — if cache is fresh enough, skip background refresh entirely to avoid re-renders when data hasn't changed
+
+**Test Status:** 33/33 passing
+
+**Tech Debt Deferred:** 6 low-severity items (DEBT-009–014) logged to BUGS.md for Phase 3
+
+---
+
 ## Phase 1: Core Filtering v1 (2026-06-07)
 
 **Key Accomplishments:**

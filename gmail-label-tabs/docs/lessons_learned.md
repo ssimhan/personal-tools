@@ -104,3 +104,81 @@ $ # If yes, document it. If no, fix it before proceeding.
 ```
 
 **Tell:** Audit catches a code smell that feels like it should have been caught by tests. It was — the test was stale.
+
+---
+
+## Browser Global Namespace Collisions
+
+**Pattern:** Exporting content script APIs via `window.X = api` without checking for collisions with browser-native globals.
+
+**Problem:** The browser provides built-in APIs like `Cache`, `Request`, `Response`, `Headers`, `Storage`, `History`, `Navigator`, `Event`, etc. on the `window` object. If a content script exports `window.Cache = cacheApi`, host-page code that depends on `instanceof window.Cache` (used in Service Worker contexts or feature detection) silently breaks — it now points to your cache object, not the native Cache constructor. This happens silently during the "normal" page load, and the symptom appears only when code paths that use the native API are triggered.
+
+**Wrong:**
+```js
+const Cache = (() => { ... })();
+if (typeof window !== 'undefined') window.Cache = api; // ← collides with Service Worker API
+```
+
+**Right:**
+```js
+const Cache = (() => { ... })();
+if (typeof window !== 'undefined') window.GltCache = api; // ← namespaced, no collision
+```
+
+**Tell:** Page-level code that uses `new window.Cache()` or `Cache.prototype` checks in Service Workers fails. Or feature-detection code like `typeof window.Cache === 'function'` returns true when it shouldn't. No error in extension context — the break happens in the host page's own scripts.
+
+---
+
+## Dead Code in Audit
+
+**Pattern:** Functions defined but never called, left behind after refactoring.
+
+**Problem:** During a refactor (e.g., `annotateNode` was replaced by the `buildPillDataFromMessages` → `annotatePresenceFromMessages` path), the old function may be left in place. It takes up cognitive overhead for the next reader ("is this used somewhere?"). Code review may not catch it if the refactoring was incremental. It gets found later in audit, which is late — a fresh eye on the files would have caught it sooner.
+
+**Wrong:**
+```js
+function annotateNode(tree, token) {
+  // old per-label API fetch path, never called, replaced by buildPillDataFromMessages
+  // ... 50 lines of dead code ...
+}
+
+// exported but annotateNode never appears in any caller
+const api = { buildQuery, buildData, /* annotateNode omitted from exports */ };
+```
+
+**Right:**
+- If the function was replaced, delete it entirely.
+- If it's speculative code for a future feature, move to a `.md` file under `docs/ideas/` and reference it in the roadmap.
+
+**Tell:** Code review finds a function that looks important but grep reveals it's never called within the file and not exported. Or: grep for calls to the function across the entire codebase returns zero results.
+
+---
+
+## Dependency Accessor Duplication
+
+**Pattern:** Repeated calls to a `deps()` factory function that reconstructs an object from `window.*` globals.
+
+**Problem:** A function like `deps()` that reads `window.X`, `window.Y`, `window.Z` and returns `{ X, Y, Z }` is intended to be called once per function scope and destructured. If it's called 3 times inside a loop or in separate code paths within the same function, the object is reconstructed 3 times. This is a micro-optimization problem, but more importantly, it's a signal that the code is unclear about what it depends on — if a reader sees `deps()` called multiple times, they may think each call does something different.
+
+**Wrong:**
+```js
+function selectTopLevel(tree) {
+  const { ApiClient } = deps();
+  const visible = tree.filter(n => n.present);
+  // ... some logic ...
+  const { ApiClient: api2 } = deps(); // ← reconstructed, unused second name
+  // ... more logic ...
+  const unread = deps().UnreadCounter; // ← reconstructed again
+}
+```
+
+**Right:**
+```js
+function selectTopLevel(tree) {
+  const { ApiClient, UnreadCounter } = deps(); // ← called once, all deps destructured
+  const visible = tree.filter(n => n.present);
+  // ... logic uses ApiClient and UnreadCounter ...
+}
+```
+
+**Tell:** Grep shows a function calling `deps()` more than once (e.g., `grep -n "deps()" lib/injector.js | head -20` shows lines 289, 295, 302 all in the same function).
