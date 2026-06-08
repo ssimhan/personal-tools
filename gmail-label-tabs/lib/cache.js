@@ -36,7 +36,8 @@ const Cache = (() => {
   }
 
   const api = { get, set, clear };
-  if (typeof window !== 'undefined') window.Cache = api;
+  // Use GltCache not Cache — window.Cache is the browser's Service Worker Cache API
+  if (typeof window !== 'undefined') window.GltCache = api;
   if (typeof module !== 'undefined') module.exports = api;
   return api;
 })();

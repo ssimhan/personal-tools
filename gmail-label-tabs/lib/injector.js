@@ -22,7 +22,7 @@ const Injector = (() => {
   function deps() {
     return {
       ApiClient: window.ApiClient,
-      Cache: window.Cache,
+      Cache: window.GltCache,
       LabelHierarchy: window.LabelHierarchy,
       PillBar: window.PillBar,
       SearchQuery: window.SearchQuery
@@ -119,17 +119,6 @@ const Injector = (() => {
     return type === 'unread'
       ? SearchQuery.buildUnreadQuery(node.name, descendants)
       : SearchQuery.buildSearchQuery(node.name, descendants);
-  }
-
-  async function annotateNode(token, node) {
-    const { ApiClient } = deps();
-
-    node.present = await ApiClient.checkInboxPresence(token, buildQuery(node, 'search')).catch(() => false);
-    node.unread = node.present
-      ? await ApiClient.fetchUnreadEstimate(token, buildQuery(node, 'unread')).catch(() => 0)
-      : 0;
-
-    return node;
   }
 
   function messageHasAnyLabel(message, labelIds) {
