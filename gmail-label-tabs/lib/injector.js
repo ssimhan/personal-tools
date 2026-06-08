@@ -1,6 +1,10 @@
 const Injector = (() => {
   const INJECTION_ID = 'glt-pill-bar';
   const RETRY_DELAY_MS = 350;
+  const LABEL_TTL_MS = 60 * 60 * 1000;  // 1 hour  — labels rarely change
+  const MESSAGES_TTL_MS = 60 * 1000;     // 60 sec  — unread counts are time-sensitive
+  const FRESHNESS_GUARD_MS = 60 * 1000;  // 60 sec  — skip re-fetch if just injected
+  const MIN_ANCHOR_TOP = 100;            // Gmail header+search is ~65-80px
 
   const state = {
     activeLabelId: null,
@@ -11,12 +15,14 @@ const Injector = (() => {
     token: null,
     tree: [],
     anchorParent: null,
-    anchorParentOriginalPadding: ''
+    anchorParentOriginalPadding: '',
+    lastInjectedAt: 0
   };
 
   function deps() {
     return {
       ApiClient: window.ApiClient,
+      Cache: window.Cache,
       LabelHierarchy: window.LabelHierarchy,
       PillBar: window.PillBar,
       SearchQuery: window.SearchQuery
@@ -107,24 +113,20 @@ const Injector = (() => {
     anchor.parentNode.insertBefore(error, anchor);
   }
 
-  function queryForNode(node) {
+  function buildQuery(node, type) {
     const { LabelHierarchy, SearchQuery } = deps();
-    return SearchQuery.buildSearchQuery(node.name, LabelHierarchy.getDescendantNames(node));
-  }
-
-  function unreadQueryForNode(node) {
-    const { LabelHierarchy, SearchQuery } = deps();
-    return SearchQuery.buildUnreadQuery(node.name, LabelHierarchy.getDescendantNames(node));
+    const descendants = LabelHierarchy.getDescendantNames(node);
+    return type === 'unread'
+      ? SearchQuery.buildUnreadQuery(node.name, descendants)
+      : SearchQuery.buildSearchQuery(node.name, descendants);
   }
 
   async function annotateNode(token, node) {
     const { ApiClient } = deps();
-    const query = queryForNode(node);
-    const unreadQuery = unreadQueryForNode(node);
 
-    node.present = await ApiClient.checkInboxPresence(token, query).catch(() => false);
+    node.present = await ApiClient.checkInboxPresence(token, buildQuery(node, 'search')).catch(() => false);
     node.unread = node.present
-      ? await ApiClient.fetchUnreadEstimate(token, unreadQuery).catch(() => 0)
+      ? await ApiClient.fetchUnreadEstimate(token, buildQuery(node, 'unread')).catch(() => 0)
       : 0;
 
     return node;
@@ -135,25 +137,19 @@ const Injector = (() => {
     return labelIds.some(id => messageLabelIds.indexOf(id) !== -1);
   }
 
-  function countMessagesForNode(node, messages) {
-    const { LabelHierarchy } = deps();
-    const familyIds = [node.id].concat(LabelHierarchy.getDescendantIds(node));
-    return messages.filter(message => messageHasAnyLabel(message, familyIds)).length;
-  }
-
-  function countUnreadMessagesForNode(node, messages) {
+  function countMessagesForNode(node, messages, unreadOnly) {
     const { LabelHierarchy } = deps();
     const familyIds = [node.id].concat(LabelHierarchy.getDescendantIds(node));
     return messages.filter(message =>
       messageHasAnyLabel(message, familyIds) &&
-      (message.labelIds || []).indexOf('UNREAD') !== -1
+      (!unreadOnly || (message.labelIds || []).indexOf('UNREAD') !== -1)
     ).length;
   }
 
   function annotatePresenceFromMessages(nodes, messages) {
     (nodes || []).forEach(node => {
-      node.present = countMessagesForNode(node, messages) > 0;
-      node.unread = countUnreadMessagesForNode(node, messages);
+      node.present = countMessagesForNode(node, messages, false) > 0;
+      node.unread = countMessagesForNode(node, messages, true);
       annotatePresenceFromMessages(node.children || [], messages);
     });
   }
@@ -170,9 +166,8 @@ const Injector = (() => {
     ).length;
   }
 
-  async function buildPillData(token, tree) {
-    const { ApiClient, LabelHierarchy } = deps();
-    const messages = await ApiClient.fetchInboxMessageLabelSets(token);
+  function buildPillDataFromMessages(tree, messages) {
+    const { LabelHierarchy } = deps();
     const userLabelIds = LabelHierarchy.flattenNodes(tree).map(node => node.id);
 
     annotatePresenceFromMessages(tree, messages);
@@ -182,6 +177,12 @@ const Injector = (() => {
     const unlabeledUnread = getUnlabeledUnread(messages, userLabelIds);
 
     return { activeNodes, unlabeledUnread };
+  }
+
+  async function buildPillData(token, tree) {
+    const { ApiClient } = deps();
+    const messages = await ApiClient.fetchInboxMessageLabelSets(token);
+    return buildPillDataFromMessages(tree, messages);
   }
 
   function getVisibleChildren(parentNode) {
@@ -195,15 +196,12 @@ const Injector = (() => {
     // Scope strictly to Gmail inbox-list rows (tr.zA). Grabbing every <tr>
     // would also catch the rows that make up an open conversation and hide
     // the message you just opened.
-    const rows = Array.from(anchor.querySelectorAll('tr.zA'));
-    if (rows.length > 0) return rows;
-
-    return Array.from(document.querySelectorAll('div[role="main"] tr.zA'));
+    return Array.from(anchor.querySelectorAll('tr.zA'));
   }
 
   function normalizeText(text) {
     return String(text || '')
-      .replace(/\u2026/g, '')
+      .replace(/…/g, '')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
@@ -274,25 +272,18 @@ const Injector = (() => {
 
   function navigateToNode(node) {
     applyRowFilterForNode(node);
-    window.setTimeout(reapplyActiveFilter, 500);
   }
 
-  function setActivePill(wrapper, labelId) {
-    wrapper.querySelectorAll('.glt-pill').forEach(pill => {
-      pill.classList.toggle('glt-pill--active', pill.getAttribute('data-label-id') === labelId);
-    });
-  }
-
-  function setActiveSubPill(wrapper, labelId) {
-    wrapper.querySelectorAll('.glt-subpill').forEach(pill => {
-      pill.classList.toggle('glt-subpill--active', pill.getAttribute('data-label-id') === labelId);
+  function setActiveState(wrapper, selector, activeClass, labelId) {
+    wrapper.querySelectorAll(selector).forEach(el => {
+      el.classList.toggle(activeClass, el.getAttribute('data-label-id') === labelId);
     });
   }
 
   async function selectTopLevel(wrapper, labelId) {
     state.activeLabelId = labelId;
     state.activeSubId = null;
-    setActivePill(wrapper, labelId);
+    setActiveState(wrapper, '.glt-pill', 'glt-pill--active', labelId);
 
     if (labelId === '__all__') {
       const { PillBar } = deps();
@@ -305,7 +296,6 @@ const Injector = (() => {
       const { PillBar } = deps();
       PillBar.hideSubPills(wrapper);
       applyUnlabeledRowFilter();
-      window.setTimeout(reapplyActiveFilter, 500);
       return;
     }
 
@@ -328,7 +318,7 @@ const Injector = (() => {
     const isAll = pill.getAttribute('data-sub-all') === 'true';
 
     state.activeSubId = isAll ? null : labelId;
-    setActiveSubPill(wrapper, labelId);
+    setActiveState(wrapper, '.glt-subpill', 'glt-subpill--active', labelId);
 
     if (isAll) {
       navigateToNode(parentNode);
@@ -372,6 +362,39 @@ const Injector = (() => {
     }
   }
 
+  async function renderFromData(rawLabels, messages, anchor) {
+    const { LabelHierarchy, PillBar } = deps();
+
+    removeExisting();
+
+    state.tree = LabelHierarchy.buildTree(rawLabels);
+    const pillData = buildPillDataFromMessages(state.tree, messages);
+    state.activeNodes = pillData.activeNodes;
+
+    if (state.activeNodes.length === 0 && pillData.unlabeledUnread === false) return;
+
+    const wrapper = PillBar.createPillBar(
+      state.activeNodes,
+      pillData.unlabeledUnread,
+      state.activeLabelId
+    );
+    wrapper.id = INJECTION_ID;
+    bindEvents(wrapper);
+    positionAndInsert(wrapper, anchor);
+    await restoreActiveSubRow(wrapper);
+  }
+
+  async function loadAndCacheData(token) {
+    const { ApiClient, Cache } = deps();
+    const rawLabels = await ApiClient.fetchLabels(token);
+    const messages = await ApiClient.fetchInboxMessageLabelSets(token);
+    if (Cache) {
+      await Cache.set('labels', rawLabels, LABEL_TTL_MS);
+      await Cache.set('messages', messages, MESSAGES_TTL_MS);
+    }
+    return { rawLabels, messages };
+  }
+
   async function inject() {
     if (state.injecting || !isRelevantGmailView()) return;
     if (document.getElementById(INJECTION_ID)) return;
@@ -379,43 +402,61 @@ const Injector = (() => {
     const anchor = findAnchor();
     if (!anchor) return;
 
+    // Guard: if anchor hasn't settled below Gmail's header+search bar, defer.
+    // Gmail's header is ~65-80px; an anchor.top < MIN_ANCHOR_TOP means layout
+    // isn't finished and the pill bar would render over the search bar.
+    const anchorRect = anchor.getBoundingClientRect();
+    if (anchorRect.top < MIN_ANCHOR_TOP) {
+      scheduleInject();
+      return;
+    }
+
     state.injecting = true;
 
     try {
-      removeExisting();
-
-      const { ApiClient, LabelHierarchy, PillBar, SearchQuery } = deps();
-      if (!ApiClient || !LabelHierarchy || !PillBar || !SearchQuery) {
-        throw new Error('Extension modules did not load in order.');
-      }
+      const { ApiClient, Cache } = deps();
+      if (!ApiClient || !Cache) throw new Error('Extension modules did not load in order.');
 
       if (!state.token) state.token = await ApiClient.getToken();
 
-      const rawLabels = await ApiClient.fetchLabels(state.token);
-      state.tree = LabelHierarchy.buildTree(rawLabels);
+      const [cachedLabels, cachedMessages] = await Promise.all([
+        Cache.get('labels'),
+        Cache.get('messages')
+      ]);
 
-      const pillData = await buildPillData(state.token, state.tree);
-      state.activeNodes = pillData.activeNodes;
+      const now = Date.now();
+      const isRecent = now - state.lastInjectedAt < FRESHNESS_GUARD_MS;
 
-      if (state.activeNodes.length === 0 && pillData.unlabeledUnread === false) {
-        return;
+      if (cachedLabels && cachedMessages) {
+        // Warm cache: render immediately from stale data
+        await renderFromData(cachedLabels, cachedMessages, anchor);
+        state.lastInjectedAt = now;
+
+        // Background refresh — skip if we just injected recently
+        if (!isRecent) {
+          loadAndCacheData(state.token)
+            .then(({ rawLabels, messages }) => {
+              // Only re-render if something changed
+              if (JSON.stringify(rawLabels) !== JSON.stringify(cachedLabels) ||
+                  JSON.stringify(messages) !== JSON.stringify(cachedMessages)) {
+                const a = findAnchor();
+                if (a) renderFromData(rawLabels, messages, a);
+              }
+            })
+            .catch(err => console.error('[GmailLabelTabs] Background refresh failed:', err));
+        }
+      } else {
+        // Cold load — no cache yet
+        const { rawLabels, messages } = await loadAndCacheData(state.token);
+        await renderFromData(rawLabels, messages, anchor);
+        state.lastInjectedAt = now;
       }
-
-      const wrapper = PillBar.createPillBar(
-        state.activeNodes,
-        pillData.unlabeledUnread,
-        state.activeLabelId
-      );
-      wrapper.id = INJECTION_ID;
-
-      bindEvents(wrapper);
-      positionAndInsert(wrapper, anchor);
-      await restoreActiveSubRow(wrapper);
     } catch (error) {
       console.error('[GmailLabelTabs] Could not inject pill bar:', error);
 
-      if (String(error.message || '').indexOf('token') !== -1 || String(error.message || '').indexOf('OAuth') !== -1) {
-        showError(anchor, 'Gmail Label Tabs needs sign-in. Click the extension icon to connect Gmail.');
+      if (error.type === 'OAuthError') {
+        const a = findAnchor();
+        if (a) showError(a, 'Gmail Label Tabs needs sign-in. Click the extension icon to connect Gmail.');
       }
     } finally {
       state.injecting = false;
@@ -456,7 +497,7 @@ const Injector = (() => {
   const api = {
     init,
     isRelevantGmailView,
-    queryForNode
+    buildQuery
   };
 
   if (typeof window !== 'undefined') window.Injector = api;

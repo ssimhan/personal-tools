@@ -14,7 +14,7 @@ const ApiClient = (() => {
           return;
         }
 
-        reject(new Error(response && response.error ? response.error : 'No Gmail token available'));
+        reject(Object.assign(new Error('OAuth token unavailable'), { type: 'OAuthError' }));
       });
     });
   }
