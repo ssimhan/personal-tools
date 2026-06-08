@@ -25,6 +25,7 @@
         "lib/label-hierarchy.js",
         "lib/search-query.js",
         "lib/api-client.js",
+        "lib/cache.js",
         "lib/pill-bar.js",
         "lib/injector.js"
       ],
