@@ -9,7 +9,8 @@ const labels = [
   { id: 'friends', name: '6- Friends' },
   { id: 'chatting', name: 'Chatting' },
   { id: 'inbox', name: 'INBOX' },
-  { id: 'sent', name: 'SENT' }
+  { id: 'sent', name: 'SENT' },
+  { id: 'snoozed', name: 'SNOOZED', type: 'system' }
 ];
 
 test('buildTree filters system labels and nests user labels', () => {
@@ -18,6 +19,7 @@ test('buildTree filters system labels and nests user labels', () => {
   const glean = career.children.find(node => node.id === 'glean');
 
   expect(tree.find(node => node.id === 'inbox')).toBeUndefined();
+  expect(tree.find(node => node.id === 'snoozed')).toBeUndefined();
   expect(career.children.map(node => node.id)).toEqual(['glean', 'job']);
   expect(glean.children[0].id).toBe('competitive');
 });

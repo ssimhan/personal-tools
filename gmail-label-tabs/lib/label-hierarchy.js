@@ -38,7 +38,9 @@ const LabelHierarchy = (() => {
   }
 
   function buildTree(apiLabels) {
-    const userLabels = (apiLabels || []).filter(label => !isSystemLabel(label.name));
+    const userLabels = (apiLabels || []).filter(label => (
+      label.type !== 'system' && !isSystemLabel(label.name)
+    ));
     const byName = {};
     const roots = [];
 

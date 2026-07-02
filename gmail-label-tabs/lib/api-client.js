@@ -1,22 +1,32 @@
 const ApiClient = (() => {
   const BASE_URL = 'https://gmail.googleapis.com/gmail/v1/users/me';
+  const REQUEST_TIMEOUT_MS = 15000;
 
-  function getToken() {
+  function createError(message, type, details) {
+    return Object.assign(new Error(message), { type }, details || {});
+  }
+
+  function runtimeMessage(message) {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: 'GET_TOKEN' }, response => {
+      chrome.runtime.sendMessage(message, response => {
         if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
+          reject(createError(chrome.runtime.lastError.message, 'RuntimeError'));
           return;
         }
-
-        if (response && response.token) {
-          resolve(response.token);
-          return;
-        }
-
-        reject(new Error(response && response.error ? response.error : 'No Gmail token available'));
+        resolve(response || {});
       });
     });
+  }
+
+  async function getToken() {
+    const response = await runtimeMessage({ type: 'GET_TOKEN' });
+    if (response.token) return response.token;
+    throw createError('OAuth token unavailable', 'OAuthError');
+  }
+
+  async function invalidateToken(token) {
+    const response = await runtimeMessage({ type: 'INVALIDATE_TOKEN', token });
+    if (response.error) throw createError(response.error, 'OAuthError');
   }
 
   function buildUrl(path, params) {
@@ -30,14 +40,25 @@ const ApiClient = (() => {
   }
 
   async function apiFetch(token, path, params) {
-    const response = await fetch(buildUrl(path, params), {
-      headers: {
-        Authorization: 'Bearer ' + token
-      }
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let response;
+
+    try {
+      response = await fetch(buildUrl(path, params), {
+        headers: { Authorization: 'Bearer ' + token },
+        signal: controller.signal
+      });
+    } catch (error) {
+      throw createError('Gmail API request failed', 'NetworkError');
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
-      throw new Error('Gmail API error: ' + response.status);
+      throw createError('Gmail API error: ' + response.status, 'ApiError', {
+        status: response.status
+      });
     }
 
     return response.json();
@@ -48,63 +69,73 @@ const ApiClient = (() => {
     return data.labels || [];
   }
 
-  async function fetchInboxMessages(token) {
-    const data = await apiFetch(token, '/messages', {
-      labelIds: 'INBOX',
-      maxResults: '100',
-      fields: 'messages(id),nextPageToken,resultSizeEstimate'
-    });
-    return data.messages || [];
-  }
-
-  async function fetchMessageLabels(token, messageId) {
-    const data = await apiFetch(token, '/messages/' + encodeURIComponent(messageId), {
-      format: 'minimal',
-      fields: 'id,labelIds'
-    });
-    return data.labelIds || [];
-  }
-
-  async function fetchInboxMessageLabelSets(token) {
-    const messages = await fetchInboxMessages(token);
-    return Promise.all(messages.map(async message => ({
-      id: message.id,
-      labelIds: await fetchMessageLabels(token, message.id)
-    })));
-  }
-
-  async function fetchMessageEstimate(token, query) {
-    const data = await apiFetch(token, '/messages', {
+  async function fetchThreadPage(token, query) {
+    const data = await apiFetch(token, '/threads', {
       q: query,
-      maxResults: '1'
+      maxResults: '1',
+      fields: 'threads(id),resultSizeEstimate'
     });
-    return data.resultSizeEstimate || 0;
+    const threads = data.threads || [];
+    return {
+      estimate: Math.max(data.resultSizeEstimate || 0, threads.length),
+      hasResults: threads.length > 0
+    };
   }
 
-  async function checkInboxPresence(token, query) {
-    const estimate = await fetchMessageEstimate(token, query);
-    return estimate > 0;
+  async function fetchThreadEstimate(token, query) {
+    const page = await fetchThreadPage(token, query);
+    return page.estimate;
   }
 
-  async function fetchUnreadEstimate(token, query) {
-    return fetchMessageEstimate(token, query);
+  async function fetchQuerySummary(token, query, unreadQuery) {
+    const unread = await fetchThreadPage(token, unreadQuery);
+    if (unread.hasResults || unread.estimate > 0) {
+      return { present: true, unread: unread.estimate };
+    }
+
+    const total = await fetchThreadPage(token, query);
+    return { present: total.hasResults || total.estimate > 0, unread: 0 };
   }
 
-  async function checkUnlabeledPresence(token) {
-    return checkInboxPresence(token, 'in:inbox has:nouserlabels');
+  async function mapWithConcurrency(items, concurrency, worker) {
+    const results = new Array(items.length);
+    let nextIndex = 0;
+    const workerCount = Math.max(1, Math.min(concurrency || 1, items.length || 1));
+
+    async function run() {
+      while (nextIndex < items.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await worker(items[index], index);
+      }
+    }
+
+    await Promise.all(Array.from({ length: workerCount }, run));
+    return results;
+  }
+
+  async function fetchQuerySummaries(token, entries, concurrency) {
+    return mapWithConcurrency(entries || [], concurrency || 4, async entry => {
+      try {
+        const summary = await fetchQuerySummary(token, entry.query, entry.unreadQuery);
+        return { id: entry.id, ...summary };
+      } catch (error) {
+        if (error.status === 401 || error.status === 403 || error.type === 'OAuthError') {
+          throw error;
+        }
+        return { id: entry.id, present: true, unread: 0, error: true };
+      }
+    });
   }
 
   const api = {
     apiFetch,
-    checkInboxPresence,
-    checkUnlabeledPresence,
     fetchLabels,
-    fetchInboxMessageLabelSets,
-    fetchInboxMessages,
-    fetchMessageLabels,
-    fetchMessageEstimate,
-    fetchUnreadEstimate,
-    getToken
+    fetchQuerySummaries,
+    fetchQuerySummary,
+    fetchThreadEstimate,
+    getToken,
+    invalidateToken
   };
 
   if (typeof window !== 'undefined') window.ApiClient = api;

@@ -29,12 +29,38 @@ const SearchQuery = (() => {
     return '#search/' + encodeURIComponent(query);
   }
 
+  function buildInboxUrl() {
+    return '#inbox';
+  }
+
+  function normalizeQuery(query) {
+    return String(query || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function queryFromGmailHash(hash) {
+    const value = String(hash || '').replace(/^#/, '');
+    const segments = value.split('/');
+
+    if (segments[0] !== 'search' || !segments[1]) return null;
+    if (segments.length > 3) return null;
+    if (segments.length === 3 && !/^p\d+$/.test(segments[2])) return null;
+
+    try {
+      return normalizeQuery(decodeURIComponent(segments[1].replace(/\+/g, ' ')));
+    } catch (error) {
+      return null;
+    }
+  }
+
   const api = {
     buildGmailUrl,
+    buildInboxUrl,
     buildSearchQuery,
     buildUnlabeledQuery,
     buildUnreadQuery,
     labelTerm,
+    normalizeQuery,
+    queryFromGmailHash,
     quoteLabelName
   };
 

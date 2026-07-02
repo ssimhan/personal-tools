@@ -158,37 +158,45 @@ The hierarchy is re-derived at runtime from `users.labels.list()` — the above 
 ```
 gmail-label-tabs/
   manifest.json          Chrome Manifest V3
-  background.js          Service worker — handles OAuth token flow
-  content.js             Injected into mail.google.com — main UI logic
+  background.js          Service worker — token retrieval and invalidation
+  lib/
+    api-client.js        Typed Gmail API and bounded summary requests
+    cache.js             Per-entry Chrome Storage TTL cache
+    injector.js          Route, data, render, and Gmail lifecycle coordinator
+    label-hierarchy.js   Dynamic label tree and rollups
+    layout.js            Body-portal placement, spacing, and cleanup
+    pill-bar.js          Pill DOM renderer
+    search-query.js      Canonical Gmail queries and route parsing
   styles.css             Pill bar styles (brand palette)
-  popup.html / popup.js  Minimal popup: "Sign in with Google" button
-  icons/                 16, 48, 128px icons
+  popup/                 Minimal "Connect Gmail" popup
 ```
 
 ### Authentication
 - OAuth 2.0 via `chrome.identity.getAuthToken()`
 - Scope: `https://www.googleapis.com/auth/gmail.readonly`
 - One-time sign-in via extension popup; token cached by Chrome
+- A 401 evicts the rejected token and retries silently once; persistent auth failures show a reconnect message
 
 ### Data Flow
 1. **Label list:** `GET /gmail/v1/users/me/labels` → build hierarchy tree
-2. **Inbox messages:** `GET /gmail/v1/users/me/messages?labelIds=INBOX&maxResults=500` → get message IDs + labelIds (use `format=metadata`)
-3. **Active label set:** reduce all returned labelIds → determine which hierarchy nodes have ≥1 inbox email
-4. **Unread counts:** count messages where `UNREAD` labelId is present, per active label node
-5. **Render:** inject pill bar HTML into Gmail's inbox DOM
-6. **Click — category pill:** filter displayed messages to those matching parent label OR any descendant label IDs
-7. **Click — sub-label pill:** filter to that sub-label + its grandchildren label IDs
+2. **Top-level summaries:** `GET /threads?q=<canonical query>&maxResults=1` with bounded concurrency → presence and unread estimates
+3. **Child summaries:** fetched lazily with the same queries when a parent is selected
+4. **Render:** append a fixed portal to `document.body`; reserve its exact height above the current Gmail list anchor
+5. **Click — category/sub-label:** navigate to the canonical `#search/<encoded query>` route; Gmail renders the results
+6. **Route reconciliation:** derive active pills from inbox or an exact extension-generated search; unmount for threads and arbitrary searches
+7. **Refresh:** labels refresh hourly, summaries every minute, and transient failures retry after 30 seconds without requiring a page reload
 
 ### Gmail DOM Injection Strategy
-- MutationObserver on `document.body` to detect Gmail's inbox load (Gmail is a SPA)
-- Inject pill bar immediately before Gmail's email list container
-- Hide Gmail's native "Primary / Promotions / Social" tab bar via CSS override
-- On URL hash change (`#inbox` → `#label/X`), re-evaluate and re-render
+- A throttled body `MutationObserver` discovers Gmail list-anchor replacement
+- The portal stays outside Gmail's message-row subtree and never hides or rewrites rows
+- A `ResizeObserver` plus window resize handling reconciles wrapper height and list geometry
+- Semantic grid/toolbar roles are preferred; unstable anchors fail closed and leave Gmail untouched
+- Hash changes mount on inbox/owned searches and teardown on conversations or unrelated routes
 
-### Pagination
-- Fetch up to 500 inbox messages per load (covers typical inbox sizes)
-- If `nextPageToken` exists, fetch one more page (1000 messages max)
-- Display note if inbox exceeds 1000 unread — rare edge case
+### Scale
+- Filtering and pagination are entirely Gmail-native
+- Pill visibility is not capped at the first 100 or 1000 inbox messages
+- Summary calls request one thread plus `resultSizeEstimate`; API estimates affect badges only, never which Gmail results are displayed
 
 ---
 
@@ -213,16 +221,23 @@ Label display names: strip the numeric prefix (`1 - Sandhya` → `Sandhya`, `3- 
 
 ## Success Criteria
 
-- [ ] Pill bar appears on Gmail inbox load within 1 second of emails rendering
-- [ ] Only labels with ≥1 inbox email are shown as pills
-- [ ] Clicking a category pill filters the email list to show all emails matching that label or any descendant label
-- [ ] Sub-label pills appear on category pill click; show only sub-labels with ≥1 inbox email
-- [ ] "All [Category]" sub-pill always appears first and shows the full rollup
-- [ ] Unread counts on pills are accurate
-- [ ] 3-level labels roll up silently into their parent sub-label
-- [ ] Unlabeled pill shows emails with no user-created label
-- [ ] Gmail's native Primary/Social/Promotions tabs are hidden
-- [ ] Extension survives Gmail's SPA navigation (inbox → email → back to inbox)
+Automated:
+
+- [x] Every category/sub-label query is inbox-scoped and includes all descendants
+- [x] Pills navigate through Gmail search; the extension never hides Gmail rows
+- [x] All Inbox and Unlabeled produce canonical Gmail routes
+- [x] Parent and child visibility is not capped by a first-100-message crawl
+- [x] 3-level labels roll up into their direct parent sub-label
+- [x] Cache expiry and fatal-load retry wake a long-lived tab without a reload
+- [x] Thread routes, including paginated-thread shapes, unmount the bar
+- [x] Layout spacing does not compound and restores or preserves host padding safely
+
+Pending real-Gmail verification:
+
+- [ ] Bar appears without overlapping Gmail in every supported density, zoom, and sidebar state
+- [ ] Parent, child, Unlabeled, and All Inbox results match the equivalent typed Gmail searches
+- [ ] Thread → Back/Forward restores the correct bar and active state
+- [ ] Gmail menus, search, message rows, and keyboard interaction remain unaffected
 
 ---
 
@@ -230,13 +245,13 @@ Label display names: strip the numeric prefix (`1 - Sandhya` → `Sandhya`, `3- 
 
 | Scenario | Handling |
 |---|---|
-| Gmail API rate limit hit | Show pills from last successful fetch; retry after 30s |
-| OAuth token expired | Silently refresh via `chrome.identity.getAuthToken({interactive: false})`; if fails, show "reconnect" button in pill bar |
+| Gmail API rate limit or transient failure | Keep the last good data when available; retry after 30s; never cache fallback summaries |
+| OAuth token expired | Evict the rejected token and retry silently once; if it still fails, direct the user to the extension popup |
 | No inbox emails | Pill bar not rendered; Gmail displays normally |
 | All inbox emails are unlabeled | Only "Unlabeled" pill shown |
 | Gmail DOM structure changes (Gmail update) | Extension fails gracefully — Gmail shows normally, no crash. Log injection failure to console. |
-| Inbox > 1000 emails | Fetch 2 pages (1000 max); show pill bar based on those. Edge case note shown if truncated. |
-| Label renamed in Gmail | Resolved on next inbox load — hierarchy is always re-derived live |
+| Large inbox | Gmail owns result pagination; thread queries are not capped by a local message crawl |
+| Label renamed in Gmail | Re-derived on the hourly label refresh or the next content-script load |
 | Sub-label with no parent match | Treated as top-level label |
 
 ---
@@ -248,3 +263,16 @@ Label display names: strip the numeric prefix (`1 - Sandhya` → `Sandhya`, `3- 
 - **2026-06-07** [Dynamic visibility] — Decision: only show pills for labels with ≥1 inbox email right now. Rejected: static list of all labels. Because: user wants the bar to reflect actual inbox state, not a menu of every label they've ever created.
 - **2026-06-07** [Data approach] — Decision: Gmail API (readonly scope) + OAuth. Rejected: DOM scraping of Gmail's label sidebar. Because: true rollup across sub-labels requires knowing each message's full label set, which only the API provides.
 - **2026-06-07** [Label name display] — Decision: strip numeric prefix for display (`3- Career` → `Career`). Because: numbers are Gmail sort-order hacks, not meaningful to the user in a visual UI.
+
+---
+
+## Implementation Addendum — 2026-07-02
+
+The v1 implementation drifted from this PRD by hiding rendered Gmail rows using label-name substring matching. That behavior was removed in v1.1.
+
+- Pill clicks now use the Gmail search queries specified in this design.
+- Gmail owns filtering, pagination, thread rendering, and result interaction.
+- The extension uses thread-query estimates for pill visibility and unread badges instead of crawling the first 100 message details.
+- The pill bar remains a body-mounted portal, with a dedicated layout controller that reserves its height and reconciles resize, navigation, and Gmail anchor replacement.
+- Arbitrary Gmail searches do not show the bar; inbox and exact extension-generated searches do.
+- The Technical Architecture, Success Criteria, and Failure Modes above now describe v1.1; earlier message-crawl and DOM-row-filtering plans are superseded.

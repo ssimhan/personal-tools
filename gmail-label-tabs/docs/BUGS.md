@@ -2,25 +2,32 @@
 
 ## Active
 
-(None)
+None known after automated verification. Real-Gmail smoke testing is still required for the host-DOM integration.
 
-## Resolved (Phase 1)
+## Resolved — Native Search Repair (2026-07-02)
 
-| ID | Description | Severity | Fixed | Note |
-|----|-------------|----------|-------|------|
-| BUG-001 | First pill click does not apply the row filter — requires a second click to show only that category | High | 2026-06-07 | Fixed: added `event.stopPropagation()` + `event.preventDefault()` in pill click handlers to prevent Gmail re-rendering the view after click |
-| BUG-002 | Email clicks silently fail immediately after extension loads, before any user interaction | Critical | 2026-06-07 | Fixed: moved pill-bar injection from `anchor.parentNode.insertBefore()` to `document.body.appendChild()` with `position:fixed`. Inserting into Gmail's observed DOM subtree triggered Gmail's MutationObserver, which disabled `pointer-events` on the main content area during re-render. |
-| BUG-003 | Sub-labels permanently disappear from UI after first click on parent label | High | 2026-06-07 | Fixed: renamed `loadVisibleChildren(token, parentNode)` to `getVisibleChildren(parentNode)`. The old function mutated `parentNode.children` in place, destroying non-present children from shared state. New version returns a filtered array; caller decides whether to use it without mutating the original. |
+| ID | Description | Severity | Resolution |
+|----|-------------|----------|------------|
+| BUG-004 | Label pills hid visible rows by matching label names against each row's text, causing false positives and false negatives | Critical | Removed all row-text filtering. Pills now navigate to deterministic, inbox-scoped Gmail searches. |
+| BUG-005 | Fixed pill bar overlaid Gmail rows/search/dropdowns and became misplaced after resize, sidebar changes, or sub-row expansion | Critical | Added a layout controller that owns portal width/position, reserves exact wrapper height, observes resize, and restores the original inline padding on teardown. |
+| BUG-006 | Bar and active state became stale across search, thread, Back, and Gmail SPA DOM replacement | High | Added route-driven reconciliation, owned-query recognition, thread teardown, anchor replacement handling, and stale async request guards. |
+| BUG-007 | Pill visibility and counts were limited to the first 100 inbox messages and required up to 100 detail requests | High | Replaced the message crawl with bounded-concurrency Gmail thread query estimates using the same query semantics as navigation. |
+| BUG-008 | A cached expired OAuth token produced silent 401 failures | High | Added typed API/OAuth errors, cached-token invalidation, and one silent retry before showing a reconnect message. |
+| BUG-009 | Unlabeled could not render as the active pill | Medium | Added active styling and `aria-pressed` state for Unlabeled. |
 
-## Tech Debt
+## Resolved — Phase 1 (2026-06-07)
 
-| ID | Description | Severity | File | Note |
-|----|-------------|----------|------|------|
-| DEBT-001 | `queryForNode` and `unreadQueryForNode` are structural duplicates — both call `deps()` + `getDescendantNames`, differ only in which `SearchQuery` method they invoke. Extract to `buildQuery(node, type)`. | Low | `lib/injector.js` |  |
-| DEBT-002 | `countMessagesForNode` and `countUnreadMessagesForNode` share identical family-ID construction. One should call the other, or both should use a shared `getMessagesByNode(node, messages, unreadOnly)` helper. | Low | `lib/injector.js` |  |
-| DEBT-003 | `createPill` and `createSubPill` are near-identical — same structure, different class names. Extract to a shared `createPillElement(label, isActive, classes)` factory. | Low | `lib/pill-bar.js` |  |
-| DEBT-004 | `setActivePill` and `setActiveSubPill` are structurally identical — differ only in selector string. Merge into `setActiveState(wrapper, selector, labelId)`. | Low | `lib/injector.js` |  |
-| DEBT-005 | `inject()` does six things: guards, dep resolution, data fetching, state mutation, DOM insertion, error handling. Split data-fetch + state into a `refresh()` helper; `inject()` should only own DOM work. | Low | `lib/injector.js` |  |
-| DEBT-006 | Token/OAuth error detection uses substring matching (`indexOf('token')`, `indexOf('OAuth')`) on free-text error messages. Fragile — will silently miss or misroute errors. Throw a typed error at `ApiClient.getToken()` instead. | Low | `lib/injector.js` |  |
-| DEBT-007 | `navigateToNode` applies the row filter immediately then re-applies it 500 ms later on every label click. The 500 ms retry is speculative — remove it and add back only if a specific race condition is confirmed. | Low | `lib/injector.js` |  |
-| DEBT-008 | Fallback branch in `getInboxRows` (`document.querySelectorAll('div[role="main"] tr.zA')`) is unreachable — the guard above returns early if `findAnchor()` returned nothing. Remove the dead branch. | Low | `lib/injector.js` |  |
+| ID | Description | Severity | Resolution |
+|----|-------------|----------|------------|
+| BUG-001 | First pill click did not apply the filter | High | Click handlers now stop propagation and prevent the default host-page action. Native search navigation removes the original race entirely. |
+| BUG-002 | Email clicks silently failed after extension load | Critical | The extension portal remains attached to `document.body`; Gmail-owned message rows are never modified. |
+| BUG-003 | Sub-labels permanently disappeared after a parent click | High | Child filtering is immutable; the original hierarchy remains intact. |
+
+## Remaining Technical Risk
+
+| ID | Risk | Severity | Note |
+|----|------|----------|------|
+| RISK-001 | Gmail list-anchor selectors and hash routes are undocumented host behavior | Medium | Integration fails closed when no stable anchor exists; keep the real-Gmail verification matrix current. |
+| RISK-002 | Gmail API `resultSizeEstimate` values are estimates | Low | They are used only for visibility and unread badges, never for filtering correctness. |
+| RISK-003 | `labels.list` does not return Gmail label colors | Low | Current UI uses the neutral palette unless a future version adds cached `labels.get` calls. |
+| RISK-004 | Multi-account Gmail tabs can differ from the Chrome Identity account behind `users/me` | Medium | v1.1 is supported for a single personal Chrome/Gmail account profile; add explicit account matching before multi-account use. |

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Label Tabs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Organizes Gmail inbox into dynamic label-based pill tabs.",
   "permissions": ["identity", "storage"],
   "host_permissions": [
@@ -25,6 +25,8 @@
         "lib/label-hierarchy.js",
         "lib/search-query.js",
         "lib/api-client.js",
+        "lib/cache.js",
+        "lib/layout.js",
         "lib/pill-bar.js",
         "lib/injector.js"
       ],

@@ -1,110 +1,90 @@
 const Injector = (() => {
   const INJECTION_ID = 'glt-pill-bar';
-  const RETRY_DELAY_MS = 350;
+  const LABEL_TTL_MS = 60 * 60 * 1000;
+  const SUMMARY_TTL_MS = 60 * 1000;
+  const RETRY_DELAY_MS = 120;
+  const ERROR_RETRY_MS = 30 * 1000;
 
   const state = {
-    activeLabelId: null,
-    activeSubId: null,
+    activeLabelId: '__all__',
     activeNodes: [],
+    activeSubId: null,
+    anchorCandidate: null,
+    anchorSignature: '',
+    childrenLoaded: {},
+    childrenRefreshAt: {},
+    childrenPromises: {},
+    dataPromise: null,
     initialized: false,
-    injecting: false,
+    labelsRefreshAt: 0,
+    lastLoadError: null,
+    nextLoadAttemptAt: 0,
+    observer: null,
+    queryIndex: {},
+    ready: false,
+    reconcileRequest: 0,
+    reconcileTimer: null,
     token: null,
+    topSummariesRefreshAt: 0,
     tree: [],
-    anchorParent: null,
-    anchorParentOriginalPadding: ''
+    unlabeledUnread: false,
+    wakeAt: 0,
+    wakeTimer: null
   };
 
   function deps() {
     return {
       ApiClient: window.ApiClient,
+      Cache: window.GltCache,
       LabelHierarchy: window.LabelHierarchy,
+      Layout: window.GltLayout,
       PillBar: window.PillBar,
       SearchQuery: window.SearchQuery
     };
   }
 
-  function isConversationOpen() {
-    // An open thread looks like "#inbox/<threadId>" or "#search/<q>/<threadId>".
-    // A plain list view is "#inbox", "#inbox/p2" (pagination), or "#search/<q>".
-    const hash = window.location.hash || '';
-    const segments = hash.replace(/^#/, '').split('/');
+  function routeForHash(hash) {
+    const { SearchQuery } = deps();
+    const value = String(hash || '').replace(/^#/, '');
+    const segments = value.split('/');
+    const section = segments[0];
 
-    if (segments[0] === 'inbox') {
-      const tail = segments[1];
-      // No tail, or pagination markers like "p2", are still list views.
-      return !!tail && !/^p\d+$/.test(tail);
+    if (!section || section === 'inbox') {
+      if (!section || segments.length === 1) return { kind: 'inbox' };
+      if (segments.length === 2 && /^p\d+$/.test(segments[1])) return { kind: 'inbox' };
+      return { kind: 'conversation' };
     }
 
-    if (segments[0] === 'search') {
-      // #search/<query> is a list; #search/<query>/<threadId> is open.
-      return segments.length > 2;
+    if (section === 'search') {
+      if (segments.length > 3) return { kind: 'conversation' };
+      if (segments.length === 3 && !/^p\d+$/.test(segments[2])) return { kind: 'conversation' };
+      const query = SearchQuery.queryFromGmailHash(hash);
+      return query ? { kind: 'search', query } : { kind: 'other' };
     }
 
-    return false;
+    return { kind: 'other' };
   }
 
   function isRelevantGmailView() {
-    const hash = window.location.hash || '';
-    const isInboxOrSearch = hash === '' ||
-      hash === '#inbox' ||
-      hash.indexOf('#inbox') === 0 ||
-      hash.indexOf('#search') === 0;
-
-    // Stay out of the way while a single email is open.
-    return isInboxOrSearch && !isConversationOpen();
+    const route = routeForHash(window.location.hash);
+    return route.kind === 'inbox' || route.kind === 'search';
   }
 
   function findAnchor() {
     const main = document.querySelector('div[role="main"]');
     if (!main) return null;
 
-    return main.querySelector('table.F.cf.zt') ||
-      main.querySelector('div[role="grid"]') ||
-      main.querySelector('table');
-  }
+    const semanticGrid = main.querySelector('div[role="grid"]');
+    if (semanticGrid) return semanticGrid;
 
-  function removeExisting() {
-    const existing = document.getElementById(INJECTION_ID);
-    if (existing) existing.remove();
-    if (state.anchorParent) {
-      state.anchorParent.style.paddingTop = state.anchorParentOriginalPadding;
-      state.anchorParent = null;
-      state.anchorParentOriginalPadding = '';
+    const knownRow = main.querySelector('tr.zA');
+    if (knownRow) {
+      const rowTable = knownRow.closest('table');
+      if (rowTable) return rowTable;
     }
-  }
 
-  function positionAndInsert(wrapper, anchor) {
-    // Insert onto document.body (NOT into Gmail's DOM) to avoid triggering
-    // Gmail's MutationObserver, which disables pointer-events on div[role="main"]
-    // during its re-render cycle. Inserting inside Gmail's DOM caused all email
-    // row clicks to silently fail until Gmail's re-render settled — even before
-    // any label pill was clicked. Using position:fixed + body-append sidesteps
-    // Gmail's DOM entirely. padding-top on the anchor parent compensates for the
-    // space the pill bar occupies.
-    const rect = anchor.getBoundingClientRect();
-    wrapper.style.top = rect.top + 'px';
-    wrapper.style.left = rect.left + 'px';
-    wrapper.style.right = '0';
-
-    document.body.appendChild(wrapper);
-
-    state.anchorParent = anchor.parentNode;
-    state.anchorParentOriginalPadding = anchor.parentNode.style.paddingTop || '';
-
-    window.requestAnimationFrame(() => {
-      if (!state.anchorParent) return;
-      state.anchorParent.style.paddingTop = wrapper.offsetHeight + 'px';
-    });
-  }
-
-  function showError(anchor, message) {
-    removeExisting();
-
-    const error = document.createElement('div');
-    error.id = INJECTION_ID;
-    error.className = 'glt-error';
-    error.textContent = message;
-    anchor.parentNode.insertBefore(error, anchor);
+    return main.querySelector('table.F.cf.zt') ||
+      main.querySelector('table');
   }
 
   function queryForNode(node) {
@@ -117,226 +97,416 @@ const Injector = (() => {
     return SearchQuery.buildUnreadQuery(node.name, LabelHierarchy.getDescendantNames(node));
   }
 
-  async function annotateNode(token, node) {
-    const { ApiClient } = deps();
-    const query = queryForNode(node);
-    const unreadQuery = unreadQueryForNode(node);
+  function buildSelectionIndex(tree) {
+    const { SearchQuery } = deps();
+    const index = {};
 
-    node.present = await ApiClient.checkInboxPresence(token, query).catch(() => false);
-    node.unread = node.present
-      ? await ApiClient.fetchUnreadEstimate(token, unreadQuery).catch(() => 0)
-      : 0;
+    (tree || []).forEach(parent => {
+      index[SearchQuery.normalizeQuery(queryForNode(parent))] = {
+        activeLabelId: parent.id,
+        activeSubId: null
+      };
 
-    return node;
-  }
-
-  function messageHasAnyLabel(message, labelIds) {
-    const messageLabelIds = message.labelIds || [];
-    return labelIds.some(id => messageLabelIds.indexOf(id) !== -1);
-  }
-
-  function countMessagesForNode(node, messages) {
-    const { LabelHierarchy } = deps();
-    const familyIds = [node.id].concat(LabelHierarchy.getDescendantIds(node));
-    return messages.filter(message => messageHasAnyLabel(message, familyIds)).length;
-  }
-
-  function countUnreadMessagesForNode(node, messages) {
-    const { LabelHierarchy } = deps();
-    const familyIds = [node.id].concat(LabelHierarchy.getDescendantIds(node));
-    return messages.filter(message =>
-      messageHasAnyLabel(message, familyIds) &&
-      (message.labelIds || []).indexOf('UNREAD') !== -1
-    ).length;
-  }
-
-  function annotatePresenceFromMessages(nodes, messages) {
-    (nodes || []).forEach(node => {
-      node.present = countMessagesForNode(node, messages) > 0;
-      node.unread = countUnreadMessagesForNode(node, messages);
-      annotatePresenceFromMessages(node.children || [], messages);
+      (parent.children || []).forEach(child => {
+        index[SearchQuery.normalizeQuery(queryForNode(child))] = {
+          activeLabelId: parent.id,
+          activeSubId: child.id
+        };
+      });
     });
+
+    index[SearchQuery.normalizeQuery(SearchQuery.buildUnlabeledQuery())] = {
+      activeLabelId: '__unlabeled__',
+      activeSubId: null
+    };
+    return index;
   }
 
-  function getUnlabeledUnread(messages, userLabelIds) {
-    const unlabeledMessages = messages.filter(message =>
-      !messageHasAnyLabel(message, userLabelIds)
+  function selectionForRoute(route) {
+    const { SearchQuery } = deps();
+    if (route.kind === 'inbox') {
+      return { activeLabelId: '__all__', activeSubId: null };
+    }
+    if (route.kind !== 'search') return null;
+    return state.queryIndex[SearchQuery.normalizeQuery(route.query)] || null;
+  }
+
+  function entriesForNodes(nodes) {
+    return (nodes || []).map(node => ({
+      id: node.id,
+      query: queryForNode(node),
+      unreadQuery: unreadQueryForNode(node)
+    }));
+  }
+
+  function entriesFingerprint(entries) {
+    return (entries || []).map(entry => entry.id + ':' + entry.query).join('|');
+  }
+
+  function summaryMap(summaries) {
+    return (summaries || []).reduce((map, summary) => {
+      map[summary.id] = summary;
+      return map;
+    }, {});
+  }
+
+  function isAuthError(error) {
+    return !!error && (
+      error.type === 'OAuthError' ||
+      error.status === 401 ||
+      error.status === 403
     );
-
-    if (unlabeledMessages.length === 0) return false;
-
-    return unlabeledMessages.filter(message =>
-      (message.labelIds || []).indexOf('UNREAD') !== -1
-    ).length;
   }
 
-  async function buildPillData(token, tree) {
-    const { ApiClient, LabelHierarchy } = deps();
-    const messages = await ApiClient.fetchInboxMessageLabelSets(token);
-    const userLabelIds = LabelHierarchy.flattenNodes(tree).map(node => node.id);
+  function clearWakeTimer() {
+    if (state.wakeTimer !== null) window.clearTimeout(state.wakeTimer);
+    state.wakeTimer = null;
+    state.wakeAt = 0;
+  }
 
-    annotatePresenceFromMessages(tree, messages);
+  function scheduleWakeAt(timestamp) {
+    if (!timestamp || timestamp <= 0) return;
+    if (state.wakeTimer !== null && state.wakeAt === timestamp) return;
 
-    const topLevel = LabelHierarchy.sortTopLevel(tree);
-    const activeNodes = topLevel.filter(node => node.present);
-    const unlabeledUnread = getUnlabeledUnread(messages, userLabelIds);
+    clearWakeTimer();
+    state.wakeAt = timestamp;
+    state.wakeTimer = window.setTimeout(() => {
+      state.wakeTimer = null;
+      state.wakeAt = 0;
+      scheduleReconcile();
+    }, Math.max(0, timestamp - Date.now()));
+  }
 
-    return { activeNodes, unlabeledUnread };
+  function scheduleKnownRefresh() {
+    const activeChildRefresh = state.childrenRefreshAt[state.activeLabelId];
+    const candidates = [
+      state.labelsRefreshAt,
+      state.topSummariesRefreshAt,
+      state.nextLoadAttemptAt,
+      activeChildRefresh
+    ].filter(timestamp => timestamp > 0);
+
+    if (candidates.length === 0) {
+      clearWakeTimer();
+      return;
+    }
+    scheduleWakeAt(Math.min(...candidates));
+  }
+
+  function dataRefreshIsDue() {
+    const now = Date.now();
+    if (!state.ready) return !state.lastLoadError || now >= state.nextLoadAttemptAt;
+    return now >= state.labelsRefreshAt || now >= state.topSummariesRefreshAt;
+  }
+
+  async function withAuthRetry(operation) {
+    const { ApiClient } = deps();
+    if (!state.token) state.token = await ApiClient.getToken();
+
+    try {
+      return await operation(state.token);
+    } catch (error) {
+      if (error.status !== 401) throw error;
+      await ApiClient.invalidateToken(state.token);
+      state.token = await ApiClient.getToken();
+      return operation(state.token);
+    }
+  }
+
+  async function fetchSummaries(entries) {
+    const { ApiClient } = deps();
+    return withAuthRetry(token => ApiClient.fetchQuerySummaries(token, entries, 4));
+  }
+
+  function currentTopSummaries() {
+    const summaries = {};
+    (state.tree || []).forEach(node => {
+      summaries[node.id] = { present: node.present, unread: node.unread };
+    });
+    summaries.__unlabeled__ = {
+      present: state.unlabeledUnread !== false,
+      unread: state.unlabeledUnread === false ? 0 : state.unlabeledUnread
+    };
+    return summaries;
+  }
+
+  function applyTopSummaries(topNodes, summaries, previous) {
+    const byId = summaryMap(summaries);
+
+    topNodes.forEach(node => {
+      let summary = byId[node.id] || { present: true, unread: 0, error: true };
+      if (summary.error && previous && previous[node.id]) summary = previous[node.id];
+      node.present = summary.present;
+      node.unread = summary.unread;
+    });
+
+    state.activeNodes = topNodes.filter(node => node.present);
+    let unlabeled = byId.__unlabeled__;
+    if (unlabeled && unlabeled.error && previous && previous.__unlabeled__) {
+      unlabeled = previous.__unlabeled__;
+    }
+    state.unlabeledUnread = unlabeled && unlabeled.present ? unlabeled.unread : false;
+  }
+
+  function installTree(rawLabels) {
+    const { LabelHierarchy } = deps();
+    state.tree = LabelHierarchy.buildTree(rawLabels);
+    state.queryIndex = buildSelectionIndex(state.tree);
+    state.childrenLoaded = {};
+    state.childrenRefreshAt = {};
+    state.childrenPromises = {};
+  }
+
+  function topSummaryEntries() {
+    const { LabelHierarchy, SearchQuery } = deps();
+    const topNodes = LabelHierarchy.sortTopLevel(state.tree);
+    return {
+      entries: entriesForNodes(topNodes).concat([{
+        id: '__unlabeled__',
+        query: SearchQuery.buildUnlabeledQuery(),
+        unreadQuery: SearchQuery.buildUnlabeledQuery() + ' is:unread'
+      }]),
+      topNodes
+    };
+  }
+
+  function summariesHaveErrors(summaries) {
+    return (summaries || []).some(summary => summary.error);
+  }
+
+  function finishSuccessfulLoad() {
+    state.ready = true;
+    state.lastLoadError = null;
+    state.nextLoadAttemptAt = 0;
+    scheduleKnownRefresh();
+  }
+
+  async function loadCatalogAndTopSummaries() {
+    const { ApiClient, Cache } = deps();
+    const now = Date.now();
+    let rawLabels = Cache ? await Cache.get('labels') : null;
+
+    if (!rawLabels) {
+      rawLabels = await withAuthRetry(token => ApiClient.fetchLabels(token));
+      if (Cache) await Cache.set('labels', rawLabels, LABEL_TTL_MS);
+    }
+    state.labelsRefreshAt = now + LABEL_TTL_MS;
+
+    installTree(rawLabels);
+    const { entries, topNodes } = topSummaryEntries();
+    const fingerprint = entriesFingerprint(entries);
+    let cached = Cache ? await Cache.get('top-summaries') : null;
+    let summaries = cached && cached.fingerprint === fingerprint ? cached.summaries : null;
+
+    if (!summaries) {
+      summaries = await fetchSummaries(entries);
+      if (Cache && !summariesHaveErrors(summaries)) {
+        await Cache.set('top-summaries', { fingerprint, summaries }, SUMMARY_TTL_MS);
+      }
+    }
+
+    applyTopSummaries(topNodes, summaries);
+    state.topSummariesRefreshAt = now + (
+      summariesHaveErrors(summaries) ? ERROR_RETRY_MS : SUMMARY_TTL_MS
+    );
+    finishSuccessfulLoad();
+  }
+
+  async function refreshCatalogAndTopSummaries() {
+    const { ApiClient, Cache } = deps();
+    const now = Date.now();
+    const labelsExpired = now >= state.labelsRefreshAt;
+    const previousSummaries = currentTopSummaries();
+
+    if (labelsExpired) {
+      const rawLabels = await withAuthRetry(token => ApiClient.fetchLabels(token));
+      if (Cache) await Cache.set('labels', rawLabels, LABEL_TTL_MS);
+      installTree(rawLabels);
+      state.labelsRefreshAt = now + LABEL_TTL_MS;
+    }
+
+    if (labelsExpired || now >= state.topSummariesRefreshAt) {
+      const { entries, topNodes } = topSummaryEntries();
+      const summaries = await fetchSummaries(entries);
+      const hasErrors = summariesHaveErrors(summaries);
+      if (Cache && !hasErrors) {
+        await Cache.set('top-summaries', {
+          fingerprint: entriesFingerprint(entries),
+          summaries
+        }, SUMMARY_TTL_MS);
+      }
+      applyTopSummaries(topNodes, summaries, previousSummaries);
+      state.topSummariesRefreshAt = now + (hasErrors ? ERROR_RETRY_MS : SUMMARY_TTL_MS);
+    }
+
+    finishSuccessfulLoad();
+  }
+
+  async function ensureData() {
+    const now = Date.now();
+    const refreshDue = state.ready && (
+      now >= state.labelsRefreshAt ||
+      now >= state.topSummariesRefreshAt
+    );
+    if (state.ready && !refreshDue) {
+      scheduleKnownRefresh();
+      return;
+    }
+    if (state.lastLoadError && Date.now() < state.nextLoadAttemptAt) {
+      scheduleKnownRefresh();
+      throw state.lastLoadError;
+    }
+    if (state.dataPromise) return state.dataPromise;
+
+    const hadData = state.ready;
+    const loader = hadData ? refreshCatalogAndTopSummaries : loadCatalogAndTopSummaries;
+    state.dataPromise = loader()
+      .catch(error => {
+        state.lastLoadError = error;
+        state.nextLoadAttemptAt = Date.now() + ERROR_RETRY_MS;
+        if (hadData) state.topSummariesRefreshAt = state.nextLoadAttemptAt;
+        scheduleKnownRefresh();
+        if (hadData && !isAuthError(error)) {
+          console.error('[GmailLabelTabs] Keeping stale data after refresh failure:', error);
+          return;
+        }
+        throw error;
+      })
+      .finally(() => {
+        state.dataPromise = null;
+      });
+    return state.dataPromise;
+  }
+
+  function applyChildSummaries(parentNode, summaries, ttlMs, preserveExisting) {
+    const byId = summaryMap(summaries);
+    (parentNode.children || []).forEach(child => {
+      const summary = byId[child.id] || { present: true, unread: 0, error: true };
+      if (summary.error && preserveExisting) return;
+      child.present = summary.present;
+      child.unread = summary.unread;
+    });
+    state.childrenLoaded[parentNode.id] = true;
+    state.childrenRefreshAt[parentNode.id] = Date.now() + ttlMs;
+    scheduleKnownRefresh();
+  }
+
+  function ensureChildren(parentNode) {
+    const { Cache } = deps();
+    if (!parentNode) return Promise.resolve();
+    if (state.childrenLoaded[parentNode.id] && Date.now() < state.childrenRefreshAt[parentNode.id]) {
+      scheduleKnownRefresh();
+      return Promise.resolve();
+    }
+    if (state.childrenPromises[parentNode.id]) return state.childrenPromises[parentNode.id];
+
+    const entries = entriesForNodes(parentNode.children || []);
+    if (entries.length === 0) {
+      state.childrenLoaded[parentNode.id] = true;
+      state.childrenRefreshAt[parentNode.id] = Date.now() + LABEL_TTL_MS;
+      scheduleKnownRefresh();
+      return Promise.resolve();
+    }
+
+    const fingerprint = entriesFingerprint(entries);
+    const cacheKey = 'children:' + parentNode.id;
+    const hadChildData = !!state.childrenLoaded[parentNode.id];
+    state.childrenPromises[parentNode.id] = (async () => {
+      const cached = Cache ? await Cache.get(cacheKey) : null;
+      let summaries = cached && cached.fingerprint === fingerprint ? cached.summaries : null;
+
+      if (!summaries) {
+        summaries = await fetchSummaries(entries);
+        if (Cache && !summariesHaveErrors(summaries)) {
+          await Cache.set(cacheKey, { fingerprint, summaries }, SUMMARY_TTL_MS);
+        }
+      }
+
+      applyChildSummaries(
+        parentNode,
+        summaries,
+        summariesHaveErrors(summaries) ? ERROR_RETRY_MS : SUMMARY_TTL_MS,
+        hadChildData
+      );
+    })().catch(error => {
+      console.error('[GmailLabelTabs] Could not load sub-label counts:', error);
+      if (isAuthError(error)) {
+        state.ready = false;
+        state.token = null;
+        state.lastLoadError = error;
+        state.nextLoadAttemptAt = Date.now() + ERROR_RETRY_MS;
+        scheduleKnownRefresh();
+      } else {
+        applyChildSummaries(parentNode, entries.map(entry => ({
+          id: entry.id,
+          present: true,
+          unread: 0,
+          error: true
+        })), ERROR_RETRY_MS, hadChildData);
+      }
+    }).finally(() => {
+      delete state.childrenPromises[parentNode.id];
+      scheduleReconcile();
+    });
+
+    return state.childrenPromises[parentNode.id];
   }
 
   function getVisibleChildren(parentNode) {
     return (parentNode.children || []).filter(child => child.present);
   }
 
-  function getInboxRows() {
-    const anchor = findAnchor();
-    if (!anchor) return [];
-
-    // Scope strictly to Gmail inbox-list rows (tr.zA). Grabbing every <tr>
-    // would also catch the rows that make up an open conversation and hide
-    // the message you just opened.
-    const rows = Array.from(anchor.querySelectorAll('tr.zA'));
-    if (rows.length > 0) return rows;
-
-    return Array.from(document.querySelectorAll('div[role="main"] tr.zA'));
-  }
-
-  function normalizeText(text) {
-    return String(text || '')
-      .replace(/\u2026/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
-  }
-
-  function getMatchTermsForNode(node) {
-    const { LabelHierarchy } = deps();
-    const names = [node.name].concat(LabelHierarchy.getDescendantNames(node));
-    const terms = [];
-
-    names.forEach(name => {
-      const parts = name.split('/');
-      terms.push(name);
-      terms.push(LabelHierarchy.getDisplayName(name));
-      terms.push(parts[parts.length - 1]);
-    });
-
-    return terms
-      .map(normalizeText)
-      .filter(Boolean)
-      .filter((term, index, list) => list.indexOf(term) === index);
-  }
-
-  function rowMatchesTerms(row, terms) {
-    const rowText = normalizeText(row.textContent);
-    return terms.some(term => rowText.indexOf(term) !== -1);
-  }
-
-  function applyRowFilterForNode(node) {
-    const terms = getMatchTermsForNode(node);
-    getInboxRows().forEach(row => {
-      row.classList.toggle('glt-row-hidden', !rowMatchesTerms(row, terms));
-    });
-  }
-
-  function applyUnlabeledRowFilter() {
-    const { LabelHierarchy } = deps();
-    const labelTerms = LabelHierarchy.flattenNodes(state.tree)
-      .map(node => normalizeText(LabelHierarchy.getDisplayName(node.name)))
-      .filter(Boolean);
-
-    getInboxRows().forEach(row => {
-      row.classList.toggle('glt-row-hidden', rowMatchesTerms(row, labelTerms));
-    });
-  }
-
-  function clearRowFilter() {
-    getInboxRows().forEach(row => row.classList.remove('glt-row-hidden'));
-  }
-
-  function reapplyActiveFilter() {
-    if (!state.activeLabelId || state.activeLabelId === '__all__') {
-      clearRowFilter();
+  function navigateToHash(hash) {
+    if (window.location.hash === hash) {
+      scheduleReconcile();
       return;
     }
-    if (state.activeLabelId === '__unlabeled__') {
-      applyUnlabeledRowFilter();
-      return;
-    }
-    const parentNode = state.activeNodes.find(n => n.id === state.activeLabelId);
-    if (!parentNode) return;
-    if (state.activeSubId) {
-      const subNode = (parentNode.children || []).find(c => c.id === state.activeSubId);
-      if (subNode) { applyRowFilterForNode(subNode); return; }
-    }
-    applyRowFilterForNode(parentNode);
+    window.location.hash = hash;
+  }
+
+  function navigateToQuery(query) {
+    const { SearchQuery } = deps();
+    navigateToHash(SearchQuery.buildGmailUrl(query));
   }
 
   function navigateToNode(node) {
-    applyRowFilterForNode(node);
-    window.setTimeout(reapplyActiveFilter, 500);
+    navigateToQuery(queryForNode(node));
   }
 
-  function setActivePill(wrapper, labelId) {
-    wrapper.querySelectorAll('.glt-pill').forEach(pill => {
-      pill.classList.toggle('glt-pill--active', pill.getAttribute('data-label-id') === labelId);
-    });
+  function navigateToInbox() {
+    const { SearchQuery } = deps();
+    navigateToHash(SearchQuery.buildInboxUrl());
   }
 
-  function setActiveSubPill(wrapper, labelId) {
-    wrapper.querySelectorAll('.glt-subpill').forEach(pill => {
-      pill.classList.toggle('glt-subpill--active', pill.getAttribute('data-label-id') === labelId);
-    });
+  function navigateToUnlabeled() {
+    const { SearchQuery } = deps();
+    navigateToQuery(SearchQuery.buildUnlabeledQuery());
   }
 
-  async function selectTopLevel(wrapper, labelId) {
-    state.activeLabelId = labelId;
-    state.activeSubId = null;
-    setActivePill(wrapper, labelId);
-
+  function selectTopLevel(labelId) {
     if (labelId === '__all__') {
-      const { PillBar } = deps();
-      PillBar.hideSubPills(wrapper);
-      clearRowFilter();
+      navigateToInbox();
       return;
     }
-
     if (labelId === '__unlabeled__') {
-      const { PillBar } = deps();
-      PillBar.hideSubPills(wrapper);
-      applyUnlabeledRowFilter();
-      window.setTimeout(reapplyActiveFilter, 500);
+      navigateToUnlabeled();
       return;
     }
 
-    const { PillBar } = deps();
-    const parentNode = state.activeNodes.find(node => node.id === labelId);
-    if (!parentNode) return;
-
-    navigateToNode(parentNode);
-
-    const visibleChildren = getVisibleChildren(parentNode);
-    if (visibleChildren.length > 0) {
-      PillBar.showSubPills(wrapper, { ...parentNode, children: visibleChildren }, null);
-    } else {
-      PillBar.hideSubPills(wrapper);
-    }
+    const node = state.activeNodes.find(candidate => candidate.id === labelId);
+    if (node) navigateToNode(node);
   }
 
-  function selectSubLevel(wrapper, parentNode, pill) {
-    const labelId = pill.getAttribute('data-label-id');
+  function selectSubLevel(parentNode, pill) {
     const isAll = pill.getAttribute('data-sub-all') === 'true';
-
-    state.activeSubId = isAll ? null : labelId;
-    setActiveSubPill(wrapper, labelId);
-
     if (isAll) {
       navigateToNode(parentNode);
       return;
     }
 
-    const subNode = (parentNode.children || []).find(child => child.id === labelId);
-    if (subNode) navigateToNode(subNode);
+    const labelId = pill.getAttribute('data-label-id');
+    const child = (parentNode.children || []).find(candidate => candidate.id === labelId);
+    if (child) navigateToNode(child);
   }
 
   function bindEvents(wrapper) {
@@ -346,125 +516,231 @@ const Injector = (() => {
     pillRow.addEventListener('click', event => {
       const pill = event.target.closest('[data-label-id]');
       if (!pill) return;
+      event.preventDefault();
       event.stopPropagation();
-      selectTopLevel(wrapper, pill.getAttribute('data-label-id'));
+      selectTopLevel(pill.getAttribute('data-label-id'));
     });
 
     subRow.addEventListener('click', event => {
       const pill = event.target.closest('[data-label-id]');
       if (!pill || !state.activeLabelId) return;
-      event.stopPropagation();
       const parentNode = state.activeNodes.find(node => node.id === state.activeLabelId);
-      if (parentNode) selectSubLevel(wrapper, parentNode, pill);
+      if (!parentNode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      selectSubLevel(parentNode, pill);
     });
   }
 
-  async function restoreActiveSubRow(wrapper) {
-    const { PillBar } = deps();
-    if (!state.activeLabelId || state.activeLabelId === '__unlabeled__') return;
+  function render(anchor) {
+    const { Layout, PillBar } = deps();
+    if (state.activeNodes.length === 0 && state.unlabeledUnread === false) {
+      Layout.teardown();
+      return;
+    }
+
+    const wrapper = PillBar.createPillBar(
+      state.activeNodes,
+      state.unlabeledUnread,
+      state.activeLabelId
+    );
+    wrapper.id = INJECTION_ID;
+    bindEvents(wrapper);
 
     const parentNode = state.activeNodes.find(node => node.id === state.activeLabelId);
-    if (!parentNode) return;
-
-    const visibleChildren = getVisibleChildren(parentNode);
-    if (visibleChildren.length > 0) {
-      PillBar.showSubPills(wrapper, { ...parentNode, children: visibleChildren }, state.activeSubId);
+    if (parentNode && state.childrenLoaded[parentNode.id]) {
+      const children = getVisibleChildren(parentNode);
+      if (children.length > 0) {
+        PillBar.showSubPills(wrapper, { ...parentNode, children }, state.activeSubId);
+      }
     }
+
+    Layout.mount(wrapper, anchor);
   }
 
-  async function inject() {
-    if (state.injecting || !isRelevantGmailView()) return;
-    if (document.getElementById(INJECTION_ID)) return;
+  function errorMessage(error) {
+    if (error.status === 403) {
+      return 'Gmail Label Tabs lacks Gmail API access. Check the API, OAuth client, and consent settings.';
+    }
+    if (error.type === 'OAuthError' || error.status === 401) {
+      return 'Gmail Label Tabs needs sign-in. Click the extension icon to reconnect Gmail.';
+    }
+    return 'Gmail Label Tabs could not refresh. Gmail is unchanged; it will retry shortly.';
+  }
 
-    const anchor = findAnchor();
-    if (!anchor) return;
+  function showError(anchor, error) {
+    const { Layout } = deps();
+    const element = document.createElement('section');
+    element.id = INJECTION_ID;
+    element.className = 'glt-wrapper glt-error';
+    element.setAttribute('role', 'alert');
+    element.textContent = errorMessage(error);
+    Layout.mount(element, anchor);
+  }
 
-    state.injecting = true;
+  function anchorGeometrySignature(anchor) {
+    const rect = anchor.getBoundingClientRect();
+    return [Math.round(rect.top), Math.round(rect.left), Math.round(rect.width)].join(':');
+  }
+
+  function anchorIsStable(anchor) {
+    const signature = anchorGeometrySignature(anchor);
+    if (state.anchorCandidate === anchor && state.anchorSignature === signature) return true;
+
+    state.anchorCandidate = anchor;
+    state.anchorSignature = signature;
+    window.requestAnimationFrame(scheduleReconcile);
+    return false;
+  }
+
+  async function reconcile() {
+    const requestId = ++state.reconcileRequest;
+    const { Layout } = deps();
+    let route = routeForHash(window.location.hash);
+
+    if (route.kind !== 'inbox' && route.kind !== 'search') {
+      Layout.teardown();
+      return;
+    }
+
+    let anchor = findAnchor();
+    if (!anchor) {
+      Layout.hide();
+      if (dataRefreshIsDue()) scheduleWakeAt(Date.now() + 1000);
+      return;
+    }
 
     try {
-      removeExisting();
-
-      const { ApiClient, LabelHierarchy, PillBar, SearchQuery } = deps();
-      if (!ApiClient || !LabelHierarchy || !PillBar || !SearchQuery) {
-        throw new Error('Extension modules did not load in order.');
-      }
-
-      if (!state.token) state.token = await ApiClient.getToken();
-
-      const rawLabels = await ApiClient.fetchLabels(state.token);
-      state.tree = LabelHierarchy.buildTree(rawLabels);
-
-      const pillData = await buildPillData(state.token, state.tree);
-      state.activeNodes = pillData.activeNodes;
-
-      if (state.activeNodes.length === 0 && pillData.unlabeledUnread === false) {
-        return;
-      }
-
-      const wrapper = PillBar.createPillBar(
-        state.activeNodes,
-        pillData.unlabeledUnread,
-        state.activeLabelId
-      );
-      wrapper.id = INJECTION_ID;
-
-      bindEvents(wrapper);
-      positionAndInsert(wrapper, anchor);
-      await restoreActiveSubRow(wrapper);
+      await ensureData();
     } catch (error) {
-      console.error('[GmailLabelTabs] Could not inject pill bar:', error);
-
-      if (String(error.message || '').indexOf('token') !== -1 || String(error.message || '').indexOf('OAuth') !== -1) {
-        showError(anchor, 'Gmail Label Tabs needs sign-in. Click the extension icon to connect Gmail.');
-      }
-    } finally {
-      state.injecting = false;
+      if (requestId === state.reconcileRequest && isRelevantGmailView()) showError(anchor, error);
+      return;
     }
+
+    if (requestId !== state.reconcileRequest) return;
+    route = routeForHash(window.location.hash);
+    const selection = selectionForRoute(route);
+
+    if (!selection) {
+      Layout.teardown();
+      return;
+    }
+
+    anchor = findAnchor();
+    if (!anchor) {
+      Layout.hide();
+      return;
+    }
+
+    if (!Layout.getWrapper() && !anchorIsStable(anchor)) return;
+
+    state.activeLabelId = selection.activeLabelId;
+    state.activeSubId = selection.activeSubId;
+    render(anchor);
+
+    const parentNode = state.activeNodes.find(node => node.id === state.activeLabelId);
+    if (parentNode && (parentNode.children || []).length > 0) ensureChildren(parentNode);
   }
 
-  let injectTimer = null;
-  function scheduleInject() {
-    if (injectTimer) window.clearTimeout(injectTimer);
-    injectTimer = window.setTimeout(() => {
-      injectTimer = null;
-      inject();
+  function scheduleReconcile() {
+    if (state.reconcileTimer !== null) return;
+    state.reconcileTimer = window.setTimeout(() => {
+      state.reconcileTimer = null;
+      reconcile();
     }, RETRY_DELAY_MS);
+  }
+
+  function handleMutation() {
+    const { Layout } = deps();
+    const wrapper = Layout.getWrapper();
+    const route = routeForHash(window.location.hash);
+
+    if (wrapper && (route.kind === 'inbox' || route.kind === 'search')) {
+      const anchor = findAnchor();
+      if (anchor) {
+        Layout.scheduleSync(anchor);
+        if (dataRefreshIsDue()) scheduleReconcile();
+      }
+      else Layout.hide();
+      return;
+    }
+
+    scheduleReconcile();
   }
 
   function init() {
     if (state.initialized) return;
-
     if (!document.body) {
       window.setTimeout(init, RETRY_DELAY_MS);
       return;
     }
 
     state.initialized = true;
+    window.addEventListener('hashchange', scheduleReconcile);
+    window.addEventListener('resize', scheduleReconcile);
+    state.observer = new MutationObserver(handleMutation);
+    state.observer.observe(document.body, { childList: true, subtree: true });
+    scheduleReconcile();
+  }
 
-    window.addEventListener('hashchange', scheduleInject);
-
-    const observer = new MutationObserver(() => {
-      if (!document.getElementById(INJECTION_ID) && isRelevantGmailView() && findAnchor()) {
-        scheduleInject();
-      }
+  function resetForTests() {
+    clearWakeTimer();
+    if (state.reconcileTimer !== null) window.clearTimeout(state.reconcileTimer);
+    Object.assign(state, {
+      activeLabelId: '__all__',
+      activeNodes: [],
+      activeSubId: null,
+      anchorCandidate: null,
+      anchorSignature: '',
+      childrenLoaded: {},
+      childrenRefreshAt: {},
+      childrenPromises: {},
+      dataPromise: null,
+      labelsRefreshAt: 0,
+      lastLoadError: null,
+      nextLoadAttemptAt: 0,
+      queryIndex: {},
+      ready: false,
+      reconcileRequest: 0,
+      reconcileTimer: null,
+      token: null,
+      topSummariesRefreshAt: 0,
+      tree: [],
+      unlabeledUnread: false
     });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-    scheduleInject();
   }
 
   const api = {
+    buildSelectionIndex,
     init,
     isRelevantGmailView,
-    queryForNode
+    navigateToInbox,
+    navigateToNode,
+    navigateToQuery,
+    navigateToUnlabeled,
+    queryForNode,
+    reconcile,
+    routeForHash
   };
+
+  if (typeof module !== 'undefined') {
+    api.__test = {
+      ensureData,
+      applyTopSummaries,
+      dataRefreshIsDue,
+      installTree,
+      reset: resetForTests,
+      state,
+      withAuthRetry
+    };
+  }
 
   if (typeof window !== 'undefined') window.Injector = api;
   if (typeof module !== 'undefined') module.exports = api;
   return api;
 })();
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof module === 'undefined') {
   try {
     Injector.init();
   } catch (error) {

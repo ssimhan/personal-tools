@@ -1,11 +1,12 @@
 .glt-wrapper {
   position: fixed;
-  z-index: 1000;
+  z-index: 100;
   box-sizing: border-box;
   border-bottom: 1px solid #E8E4D9;
   background: #F5F2E8;
   color: #2B2B2B;
   font-family: "DM Sans", Inter, Arial, sans-serif;
+  pointer-events: none;
 }
 
 .glt-wrapper *,
@@ -45,6 +46,7 @@
   gap: 6px;
   max-width: 100%;
   overflow-x: auto;
+  pointer-events: auto;
   scrollbar-width: none;
 }
 
@@ -153,8 +155,5 @@
   color: #D94F3D;
   font-family: "DM Sans", Inter, Arial, sans-serif;
   font-size: 12px;
-}
-
-tr.glt-row-hidden {
-  display: none !important;
+  pointer-events: auto;
 }

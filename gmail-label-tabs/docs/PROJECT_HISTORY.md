@@ -1,5 +1,29 @@
 # Gmail Label Tabs — Project History
 
+## Phase 2: Native Search Reliability Repair v1.1 (2026-07-02)
+
+**Why it was needed:**
+- Real Gmail filtering was inaccurate because the extension searched rendered row text for label names.
+- The fixed portal could overlap the inbox and drift after navigation or layout changes.
+- Visibility and badges only considered the first 100 inbox messages.
+
+**What changed:**
+- Replaced DOM row hiding with Gmail-native, inbox-scoped search navigation.
+- Made the URL route the source of truth for active parent/sub-label state.
+- Added a standalone layout controller with exact padding restoration, resize observation, anchor replacement, and sub-row height reconciliation.
+- Replaced the first-100 message-detail crawl with bounded-concurrency thread query summaries.
+- Added one-hour label caching, one-minute summary caching, typed OAuth/API errors, invalid-token eviction, and one retry.
+- Added active `aria-pressed` state and corrected Unlabeled selection.
+- Expanded the suite from 28 to 56 tests across 11 suites.
+
+**Verification:**
+- 56/56 Jest tests passing
+- JavaScript syntax checks passing
+- `git diff --check` passing
+- `npm audit --omit=dev`: 0 vulnerabilities
+
+**Known boundary:** Gmail's DOM and hash routes are not public extension APIs, so a real-Gmail smoke pass remains required before merging.
+
 ## Phase 1: Core Filtering v1 (2026-06-07)
 
 **Key Accomplishments:**
