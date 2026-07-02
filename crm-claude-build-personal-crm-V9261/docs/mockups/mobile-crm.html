@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal CRM — Mobile Mockups v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #111;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+    color: #1a1a1a;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .page-eyebrow {
+    color: #666;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .page-title {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  /* Section divider */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 48px 0 32px;
+  }
+  .section-divider-line { flex: 1; height: 1px; background: #222; }
+  .section-divider-label { color: #444; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+
+  /* Phone frame */
+  .screens-row {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .screen-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .screen-label {
+    color: #555;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .phone {
+    width: 300px;
+    height: 650px;
+    background: #fff;
+    border-radius: 44px;
+    box-shadow:
+      0 0 0 8px #1c1c1e,
+      0 0 0 9px #2c2c2e,
+      0 32px 80px rgba(0,0,0,0.8);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone.tall {
+    height: 750px;
+  }
+
+  /* Status bar */
+  .status-bar {
+    background: #fff;
+    padding: 12px 20px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .status-time { font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
+  .status-icons { font-size: 12px; display: flex; gap: 4px; align-items: center; color: #1a1a1a; }
+
+  .screen-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #f2f2f7;
+    position: relative;
+  }
+
+  /* ===================== PEOPLE LIST ===================== */
+  .list-header {
+    background: #fff;
+    padding: 10px 16px 0;
+  }
+
+  .list-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .list-title { font-size: 26px; font-weight: 800; letter-spacing: -0.8px; }
+
+  .sort-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: #007AFF;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .filter-scroller {
+    display: flex;
+    gap: 6px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-scroller::-webkit-scrollbar { display: none; }
+
+  .chip {
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .chip-active { background: #1c1c1e; color: #fff; }
+  .chip-inactive { background: #e8e8ed; color: #555; }
+
+  .list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0 4px;
+  }
+
+  .list-section-header {
+    padding: 6px 16px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #ff3b30;
+  }
+
+  .list-section-header.ok { color: #8e8e93; }
+
+  .contact-card {
+    background: #fff;
+    margin: 0 12px 5px;
+    border-radius: 14px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    cursor: pointer;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .card-info { flex: 1; min-width: 0; }
+  .card-name { font-size: 14px; font-weight: 600; margin-bottom: 1px; letter-spacing: -0.1px; }
+  .card-sub { font-size: 11px; color: #8e8e93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+  .rel-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .rb-work { background: #e8f0fe; color: #1a56db; }
+  .rb-personal { background: #fce8f3; color: #bf2b7a; }
+  .rb-acq { background: #e8e8ed; color: #666; }
+
+  .cadence-due {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ff3b30;
+  }
+  .cadence-ok {
+    font-size: 10px;
+    font-weight: 600;
+    color: #8e8e93;
+  }
+
+  /* ===================== BOTTOM NAV ===================== */
+  .bottom-nav {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    padding: 8px 4px 22px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 10px;
+    cursor: pointer;
+    min-width: 44px;
+  }
+
+  .nav-icon { font-size: 21px; line-height: 1; }
+  .nav-label { font-size: 9px; font-weight: 500; color: #8e8e93; letter-spacing: 0.02em; }
+  .nav-item.active .nav-label { color: #007AFF; font-weight: 600; }
+
+  .nav-fab {
+    width: 46px;
+    height: 46px;
+    background: #007AFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    font-weight: 300;
+    box-shadow: 0 4px 16px rgba(0,122,255,0.4);
+    line-height: 1;
+    margin-bottom: 4px;
+    cursor: pointer;
+  }
+
+  /* ===================== CONTACT DETAIL ===================== */
+  .detail-topbar {
+    background: #fff;
+    padding: 10px 16px 0;
+    border-bottom: 1px solid #f2f2f7;
+  }
+
+  .detail-nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .back-link { font-size: 14px; color: #007AFF; font-weight: 500; display: flex; align-items: center; gap: 2px; }
+  .detail-actions { display: flex; gap: 16px; }
+  .detail-action-icon { font-size: 18px; color: #8e8e93; cursor: pointer; }
+
+  .detail-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .profile-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .profile-name { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
+  .profile-sub { font-size: 13px; color: #8e8e93; margin-bottom: 6px; }
+  .profile-meta { display: flex; align-items: center; gap: 8px; }
+  .profile-cadence {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff3f3;
+    border: 1px solid #ffcccc;
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #cc0000;
+  }
+
+  /* Channel icons row */
+  .channel-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f2f2f7;
+    justify-content: flex-start;
+  }
+
+  .channel-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .ch-email { background: #e8f0fe; }
+  .ch-phone { background: #e8f5e9; }
+  .ch-linkedin { background: #e3f2fd; }
+  .ch-whatsapp { background: #e8f5e9; }
+  .ch-slack { background: #fce4ec; }
+
+  /* Tags row */
+  .tags-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+  }
+  .tag-pill {
+    background: #e8e8ed;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+  }
+  .tag-add {
+    background: transparent;
+    border: 1px dashed #ccc;
+    color: #aaa;
+  }
+
+  /* Tabs */
+  .tabs-row {
+    display: flex;
+    border-bottom: 1px solid #f2f2f7;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8e8e93;
+    cursor: pointer;
+    position: relative;
+  }
+  .tab.active {
+    color: #007AFF;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0; right: 0;
+    height: 2px;
+    background: #007AFF;
+    border-radius: 2px;
+  }
+
+  /* Detail scroll */
+  .detail-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detail-section {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .ds-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #8e8e93;
+    padding: 12px 14px 4px;
+  }
+
+  .ds-body {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.55;
+    padding: 0 14px 12px;
+  }
+
+  .log-btn {
+    background: #007AFF;
+    color: #fff;
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: -0.2px;
+  }
+
+  /* Timeline items */
+  .timeline-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f5f5f7;
+  }
+  .timeline-item:last-child { border-bottom: none; }
+  .ti-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .ti-note { background: #fff3e0; }
+  .ti-email { background: #e8f0fe; }
+  .ti-linkedin { background: #e3f2fd; }
+
+  .ti-content { flex: 1; }
+  .ti-text { font-size: 13px; color: #333; line-height: 1.45; margin-bottom: 3px; }
+  .ti-date { font-size: 11px; color: #8e8e93; }
+
+  /* ===================== QUICK ACTIONS SHEET ===================== */
+  .sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    z-index: 20;
+  }
+
+  .bottom-sheet {
+    background: #f2f2f7;
+    border-radius: 20px 20px 0 0;
+    padding: 0 0 32px;
+    overflow: hidden;
+  }
+
+  .sheet-handle-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 6px;
+  }
+
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: #c8c8cc;
+    border-radius: 2px;
+  }
+
+  .sheet-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8e8e93;
+    text-align: center;
+    padding-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  .sheet-group {
+    background: #fff;
+    border-radius: 14px;
+    margin: 0 12px 8px;
+    overflow: hidden;
+  }
+
+  .sheet-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-bottom: 1px solid #f2f2f7;
+    cursor: pointer;
+  }
+  .sheet-row:last-child { border-bottom: none; }
+
+  .sheet-row-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+
+  .sheet-row-title { font-size: 15px; font-weight: 600; margin-bottom: 1px; }
+  .sheet-row-sub { font-size: 12px; color: #8e8e93; }
+
+  .sheet-cancel {
+    background: #fff;
+    border-radius: 14px;
+    margin: 0 12px;
+    padding: 16px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #007AFF;
+    cursor: pointer;
+  }
+
+  /* ===================== DESKTOP KEEP IN TOUCH ===================== */
+  .desktop-wrap {
+    margin-top: 8px;
+    width: 100%;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .desktop-screen {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 0 0 1px #333, 0 32px 80px rgba(0,0,0,0.7);
+    overflow: hidden;
+    display: flex;
+    height: 560px;
+  }
+
+  .desktop-sidebar {
+    width: 180px;
+    background: #f5f5f7;
+    border-right: 1px solid #e5e5ea;
+    padding: 20px 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sidebar-logo {
+    padding: 0 16px 16px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #1a1a1a;
+    border-bottom: 1px solid #e5e5ea;
+    margin-bottom: 8px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    border-radius: 8px;
+    margin: 0 8px;
+  }
+  .sidebar-item.active {
+    background: #fff;
+    color: #1a1a1a;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .sidebar-icon { font-size: 14px; }
+
+  .desktop-main {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .desktop-topbar {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .desktop-search {
+    flex: 1;
+    background: #f5f5f7;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #8e8e93;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .desktop-top-actions { display: flex; gap: 8px; }
+  .desktop-top-btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dtb-primary { background: #007AFF; color: #fff; }
+  .dtb-secondary { background: #f0f0f0; color: #555; }
+
+  .desktop-content {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 16px 20px;
+  }
+
+  .kit-header {
+    margin-bottom: 16px;
+  }
+  .kit-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
+  .kit-sub { font-size: 13px; color: #8e8e93; }
+
+  .kit-columns {
+    display: flex;
+    gap: 16px;
+    min-width: max-content;
+    height: 380px;
+    overflow-y: hidden;
+  }
+
+  .kit-col {
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .kit-col-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #8e8e93;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e5e5ea;
+    margin-bottom: 2px;
+  }
+
+  .kit-col-header.overdue { color: #ff3b30; border-color: #ff3b30; }
+  .kit-col-header.soon { color: #ff9500; border-color: #ff9500; }
+  .kit-col-header.ok { color: #34c759; border-color: #34c759; }
+
+  .kit-person {
+    background: #fff;
+    border-radius: 10px;
+    padding: 9px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f0;
+  }
+  .kit-person.overdue { border-color: #ffd5d5; background: #fff9f9; }
+
+  .kit-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .kit-name { font-size: 12px; font-weight: 600; }
+  .kit-due { font-size: 10px; color: #ff3b30; font-weight: 600; }
+  .kit-due-ok { font-size: 10px; color: #8e8e93; }
+
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-eyebrow">Personal CRM · Dex-Inspired</div>
+  <div class="page-title">Updated Mobile UX Mockups</div>
+</div>
+
+<!-- ============ MOBILE SCREENS ============ -->
+<div class="screens-row">
+
+  <!-- SCREEN 1: PEOPLE LIST -->
+  <div class="screen-wrap">
+    <div class="screen-label">People (Home)</div>
+    <div class="phone">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons"><span>●●●</span>&nbsp;<span>▲</span>&nbsp;<span>■■■■</span></div>
+      </div>
+      <div class="screen-content">
+        <div class="list-header">
+          <div class="list-title-row">
+            <div class="list-title">People</div>
+            <div class="sort-btn">↑ Overdue first</div>
+          </div>
+          <div class="filter-scroller">
+            <div class="chip chip-active">All</div>
+            <div class="chip chip-inactive">Work</div>
+            <div class="chip chip-inactive">Personal</div>
+            <div class="chip chip-inactive">Acquaintance</div>
+          </div>
+        </div>
+
+        <div class="list-scroll">
+          <div class="list-section-header">⚠ Overdue</div>
+
+          <div class="contact-card">
+            <div class="avatar" style="background:#f97316;">MK</div>
+            <div class="card-info">
+              <div class="card-name">Marcus Kim</div>
+              <div class="card-sub">Stripe · every 2 weeks</div>
+            </div>
+            <div class="card-right">
+              <div class="rel-badge rb-work">Work</div>
+              <div class="cadence-due">47d overdue</div>
+            </div>
+          </div>
+
+          <div class="contact-card">
+            <div class="avatar" style="background:#8b5cf6;">PL</div>
+            <div class="card-info">
+              <div class="card-name">Priya Lal</div>
+              <div class="card-sub">College friend · monthly</div>
+            </div>
+            <div class="card-right">
+              <div class="rel-badge rb-personal">Personal</div>
+              <div class="cadence-due">11d overdue</div>
+            </div>
+          </div>
+
+          <div class="contact-card">
+            <div class="avatar" style="background:#0ea5e9;">JT</div>
+            <div class="card-info">
+              <div class="card-name">James Torres</div>
+              <div class="card-sub">a16z · every 2 weeks</div>
+            </div>
+            <div class="card-right">
+              <div class="rel-badge rb-work">Work</div>
+              <div class="cadence-due">14d overdue</div>
+            </div>
+          </div>
+
+          <div class="list-section-header ok">Recent</div>
+
+          <div class="contact-card">
+            <div class="avatar" style="background:#10b981;">AR</div>
+            <div class="card-info">
+              <div class="card-name">Aisha Rahman</div>
+              <div class="card-sub">Founder · every 3 months</div>
+            </div>
+            <div class="card-right">
+              <div class="rel-badge rb-acq">Acquaint.</div>
+              <div class="cadence-ok">due in 76d</div>
+            </div>
+          </div>
+
+          <div class="contact-card">
+            <div class="avatar" style="background:#ec4899;">SP</div>
+            <div class="card-info">
+              <div class="card-name">Sam Park</div>
+              <div class="card-sub">Sequoia · monthly</div>
+            </div>
+            <div class="card-right">
+              <div class="rel-badge rb-work">Work</div>
+              <div class="cadence-ok">due in 23d</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active">
+            <div class="nav-icon">👥</div>
+            <div class="nav-label" style="color:#007AFF;">People</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon" style="opacity:0.35;">📋</div>
+            <div class="nav-label">Feed</div>
+          </div>
+          <div class="nav-fab">+</div>
+          <div class="nav-item">
+            <div class="nav-icon" style="opacity:0.35;">🔍</div>
+            <div class="nav-label">Search</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon" style="opacity:0.35;">⚙️</div>
+            <div class="nav-label">Admin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: CONTACT DETAIL -->
+  <div class="screen-wrap">
+    <div class="screen-label">Contact Detail</div>
+    <div class="phone tall">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons"><span>●●●</span>&nbsp;<span>▲</span>&nbsp;<span>■■■■</span></div>
+      </div>
+      <div class="screen-content">
+        <div class="detail-topbar">
+          <div class="detail-nav-row">
+            <div class="back-link">‹ People</div>
+            <div class="detail-actions">
+              <div class="detail-action-icon">☆</div>
+              <div class="detail-action-icon">✏️</div>
+              <div class="detail-action-icon">⋯</div>
+            </div>
+          </div>
+
+          <div class="detail-profile">
+            <div class="profile-avatar" style="background:#f97316;">MK</div>
+            <div>
+              <div class="profile-name">Marcus Kim</div>
+              <div class="profile-sub">Engineering · Stripe</div>
+              <div class="profile-meta">
+                <div class="rel-badge rb-work" style="font-size:10px;">Work</div>
+                <div class="profile-cadence">⏰ 47 days overdue</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Channel buttons (Dex-inspired) -->
+          <div class="channel-row">
+            <div class="channel-btn ch-email" title="Email">✉️</div>
+            <div class="channel-btn ch-phone" title="Phone">📞</div>
+            <div class="channel-btn ch-linkedin" title="LinkedIn" style="font-size:14px;font-weight:800;color:#0077b5;">in</div>
+            <div class="channel-btn ch-whatsapp" title="WhatsApp">💬</div>
+            <div class="channel-btn ch-slack" title="Slack" style="font-size:14px;">⚡</div>
+          </div>
+
+          <!-- Tags -->
+          <div class="tags-row">
+            <div class="tag-pill">investor</div>
+            <div class="tag-pill">infra</div>
+            <div class="tag-pill tag-add">+ tag</div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="tabs-row">
+            <div class="tab active">Timeline</div>
+            <div class="tab">Notes</div>
+            <div class="tab">Details</div>
+          </div>
+        </div>
+
+        <div class="detail-scroll">
+          <!-- Log button -->
+          <div class="log-btn">✏️ &nbsp;Log interaction</div>
+
+          <!-- Timeline entries (Dex-style) -->
+          <div class="detail-section">
+            <div class="timeline-item">
+              <div class="ti-icon ti-email">✉️</div>
+              <div class="ti-content">
+                <div class="ti-text">Sent intro to the Vercel team as discussed. He's going to reach out to Ahmad directly.</div>
+                <div class="ti-date">May 12, 2026 · email</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="ti-icon ti-note">📝</div>
+              <div class="ti-content">
+                <div class="ti-text">Coffee in SF. Talked through his startup plans — still on the fence about timing.</div>
+                <div class="ti-date">Apr 24, 2026 · note</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="ti-icon ti-linkedin">💼</div>
+              <div class="ti-content">
+                <div class="ti-text">Connected on LinkedIn after SaaStr. Works on payments infra at Stripe.</div>
+                <div class="ti-date">Mar 3, 2026 · LinkedIn</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Summary -->
+          <div class="detail-section">
+            <div class="ds-label">AI summary</div>
+            <div class="ds-body">Works on payments infrastructure at Stripe. Deep interest in distributed systems and API design. Was exploring a move to a seed-stage startup as eng lead. Thoughtful communicator, prefers async.</div>
+          </div>
+
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active">
+            <div class="nav-icon">👥</div>
+            <div class="nav-label" style="color:#007AFF;">People</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon" style="opacity:0.35;">📋</div>
+            <div class="nav-label">Feed</div>
+          </div>
+          <div class="nav-fab">+</div>
+          <div class="nav-item">
+            <div class="nav-icon" style="opacity:0.35;">🔍</div>
+            <div class="nav-label">Search</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon" style="opacity:0.35;">⚙️</div>
+            <div class="nav-label">Admin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: QUICK LOG SHEET -->
+  <div class="screen-wrap">
+    <div class="screen-label">Quick Actions (+)</div>
+    <div class="phone">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons"><span>●●●</span>&nbsp;<span>▲</span>&nbsp;<span>■■■■</span></div>
+      </div>
+      <div class="screen-content">
+        <!-- dimmed bg -->
+        <div style="flex:1;filter:blur(3px);opacity:0.3;overflow:hidden;padding:8px 0;">
+          <div style="padding:8px 16px;font-size:11px;color:#aaa;font-weight:700;text-transform:uppercase;">⚠ Overdue</div>
+          <div class="contact-card"><div class="avatar" style="background:#f97316;">MK</div><div class="card-info"><div class="card-name">Marcus Kim</div><div class="card-sub">Stripe · 47d overdue</div></div></div>
+          <div class="contact-card"><div class="avatar" style="background:#8b5cf6;">PL</div><div class="card-info"><div class="card-name">Priya Lal</div><div class="card-sub">monthly · 11d overdue</div></div></div>
+        </div>
+
+        <!-- Bottom sheet -->
+        <div class="sheet-overlay">
+          <div class="bottom-sheet">
+            <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+            <div class="sheet-title">QUICK ACTIONS</div>
+
+            <div class="sheet-group">
+              <div class="sheet-row">
+                <div class="sheet-row-icon" style="background:#fff3e0;">✏️</div>
+                <div>
+                  <div class="sheet-row-title">Log an interaction</div>
+                  <div class="sheet-row-sub">Note, email or screenshot</div>
+                </div>
+              </div>
+              <div class="sheet-row">
+                <div class="sheet-row-icon" style="background:#e8f5e9;">👤</div>
+                <div>
+                  <div class="sheet-row-title">Add new contact</div>
+                  <div class="sheet-row-sub">Someone you just met</div>
+                </div>
+              </div>
+              <div class="sheet-row">
+                <div class="sheet-row-icon" style="background:#e3f2fd;">📷</div>
+                <div>
+                  <div class="sheet-row-title">Scan business card</div>
+                  <div class="sheet-row-sub">Claude extracts the details</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sheet-cancel">Cancel</div>
+          </div>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active"><div class="nav-icon">👥</div><div class="nav-label" style="color:#007AFF;">People</div></div>
+          <div class="nav-item"><div class="nav-icon" style="opacity:0.35;">📋</div><div class="nav-label">Feed</div></div>
+          <div class="nav-fab" style="background:#555;">✕</div>
+          <div class="nav-item"><div class="nav-icon" style="opacity:0.35;">🔍</div><div class="nav-label">Search</div></div>
+          <div class="nav-item"><div class="nav-icon" style="opacity:0.35;">⚙️</div><div class="nav-label">Admin</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ DESKTOP: KEEP IN TOUCH BOARD ============ -->
+<div class="section-divider">
+  <div class="section-divider-line"></div>
+  <div class="section-divider-label">Desktop — Keep In Touch Board</div>
+  <div class="section-divider-line"></div>
+</div>
+
+<div class="desktop-wrap">
+  <div class="screen-label" style="display:block;text-align:center;margin-bottom:16px;">Kanban-style cadence view · inspired by Dex</div>
+  <div class="desktop-screen">
+
+    <!-- Sidebar -->
+    <div class="desktop-sidebar">
+      <div class="sidebar-logo">◆ &nbsp;My CRM</div>
+      <div class="sidebar-item">
+        <span class="sidebar-icon">👥</span> People
+      </div>
+      <div class="sidebar-item active">
+        <span class="sidebar-icon">🤝</span> Keep in Touch
+      </div>
+      <div class="sidebar-item">
+        <span class="sidebar-icon">📋</span> Feed
+      </div>
+      <div class="sidebar-item">
+        <span class="sidebar-icon">🔍</span> Search
+      </div>
+      <div class="sidebar-item">
+        <span class="sidebar-icon">📥</span> Import
+      </div>
+      <div class="sidebar-item">
+        <span class="sidebar-icon">⚙️</span> Admin
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="desktop-main">
+      <div class="desktop-topbar">
+        <div class="desktop-search">🔍 &nbsp;Search people…</div>
+        <div class="desktop-top-actions">
+          <div class="desktop-top-btn dtb-secondary">Import</div>
+          <div class="desktop-top-btn dtb-primary">+ Add contact</div>
+        </div>
+      </div>
+
+      <div class="desktop-content">
+        <div class="kit-header">
+          <div class="kit-title">Keep In Touch</div>
+          <div class="kit-sub">Set a cadence per contact — overdue ones surface automatically.</div>
+        </div>
+
+        <div class="kit-columns">
+
+          <div class="kit-col">
+            <div class="kit-col-header overdue">⚠ Overdue</div>
+            <div class="kit-person overdue">
+              <div class="kit-avatar" style="background:#f97316;">MK</div>
+              <div>
+                <div class="kit-name">Marcus Kim</div>
+                <div class="kit-due">47d late</div>
+              </div>
+            </div>
+            <div class="kit-person overdue">
+              <div class="kit-avatar" style="background:#8b5cf6;">PL</div>
+              <div>
+                <div class="kit-name">Priya Lal</div>
+                <div class="kit-due">11d late</div>
+              </div>
+            </div>
+            <div class="kit-person overdue">
+              <div class="kit-avatar" style="background:#0ea5e9;">JT</div>
+              <div>
+                <div class="kit-name">James Torres</div>
+                <div class="kit-due">14d late</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit-col">
+            <div class="kit-col-header soon">Every week</div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#f59e0b;">NW</div>
+              <div>
+                <div class="kit-name">Nina Walsh</div>
+                <div class="kit-due-ok">due in 2d</div>
+              </div>
+            </div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#ef4444;">TR</div>
+              <div>
+                <div class="kit-name">Tom Reyes</div>
+                <div class="kit-due-ok">due in 5d</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit-col">
+            <div class="kit-col-header soon">Every 2 weeks</div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#06b6d4;">KW</div>
+              <div>
+                <div class="kit-name">Kayla Wu</div>
+                <div class="kit-due-ok">due in 3d</div>
+              </div>
+            </div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#6366f1;">DS</div>
+              <div>
+                <div class="kit-name">Dev Shah</div>
+                <div class="kit-due-ok">due in 9d</div>
+              </div>
+            </div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#84cc16;">BM</div>
+              <div>
+                <div class="kit-name">Bea Morris</div>
+                <div class="kit-due-ok">due in 12d</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit-col">
+            <div class="kit-col-header ok">Every month</div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#ec4899;">SP</div>
+              <div>
+                <div class="kit-name">Sam Park</div>
+                <div class="kit-due-ok">due in 23d</div>
+              </div>
+            </div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#a855f7;">LM</div>
+              <div>
+                <div class="kit-name">Luis Mendez</div>
+                <div class="kit-due-ok">due in 15d</div>
+              </div>
+            </div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#14b8a6;">CJ</div>
+              <div>
+                <div class="kit-name">Clara Jensen</div>
+                <div class="kit-due-ok">due in 28d</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit-col">
+            <div class="kit-col-header ok">Every 3 months</div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#10b981;">AR</div>
+              <div>
+                <div class="kit-name">Aisha Rahman</div>
+                <div class="kit-due-ok">due in 76d</div>
+              </div>
+            </div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#f43f5e;">RB</div>
+              <div>
+                <div class="kit-name">Ryan Beck</div>
+                <div class="kit-due-ok">due in 44d</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit-col">
+            <div class="kit-col-header">No cadence</div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#94a3b8;">JD</div>
+              <div>
+                <div class="kit-name">Jane Doe</div>
+                <div class="kit-due-ok">—</div>
+              </div>
+            </div>
+            <div class="kit-person">
+              <div class="kit-avatar" style="background:#94a3b8;">AK</div>
+              <div>
+                <div class="kit-name">Alex Kim</div>
+                <div class="kit-due-ok">—</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:48px;color:#333;font-size:12px;">
+  Next.js 15 PWA · Supabase · Claude AI · Tailwind · Mobile-first
+</div>
+
+</body>
+</html>
