@@ -236,9 +236,9 @@ Enable RLS and add owner-only select/insert/update/delete policies. Do not creat
 
 ### Success criteria
 
-- [ ] Pull requests run all offline checks.
-- [ ] Browser smoke test covers sign-in redirect and app shell.
-- [ ] Dependency and secret scanning are enabled.
+- [x] Pull requests run all offline checks.
+- [x] Browser smoke test covers sign-in redirect and app shell.
+- [x] Dependency and secret scanning are enabled.
 
 ### Chunk 5.1: Add CI
 
