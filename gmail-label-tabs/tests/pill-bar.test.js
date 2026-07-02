@@ -27,6 +27,7 @@ test('renders top-level pills and strips numeric prefixes', () => {
   expect(document.body.textContent).toContain('Sandhya');
   expect(document.body.textContent).toContain('Career');
   expect(document.body.textContent).not.toContain('1 - Sandhya');
+  expect(document.querySelector('[data-label-id="__all__"]').getAttribute('aria-pressed')).toBe('true');
 });
 
 test('renders unread badges when count is positive', () => {
@@ -36,11 +37,12 @@ test('renders unread badges when count is positive', () => {
 });
 
 test('unlabeled pill renders last when present', () => {
-  document.body.appendChild(PB.createPillBar(activeLabels, 3));
+  document.body.appendChild(PB.createPillBar(activeLabels, 3, '__unlabeled__'));
   const pills = Array.from(document.querySelectorAll('.glt-pill'));
 
   expect(pills[pills.length - 1].dataset.labelId).toBe('__unlabeled__');
   expect(pills[pills.length - 1].textContent).toContain('Unlabeled');
+  expect(pills[pills.length - 1].getAttribute('aria-pressed')).toBe('true');
 });
 
 test('sub-pill row is hidden by default', () => {
@@ -59,4 +61,5 @@ test('showSubPills renders all parent and direct children only', () => {
   expect(document.body.textContent).toContain('All Career');
   expect(document.body.textContent).toContain('Job Hunt');
   expect(document.body.textContent).toContain('Glean');
+  expect(document.querySelector('[data-sub-all="true"]').getAttribute('aria-pressed')).toBe('true');
 });

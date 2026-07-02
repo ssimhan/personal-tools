@@ -54,6 +54,7 @@ const PillBar = (() => {
     const pill = createElement('button', {
       className: 'glt-pill' + (isActive ? ' glt-pill--active' : ''),
       type: 'button',
+      'aria-pressed': String(!!isActive),
       'data-label-id': label.id,
       'data-label-name': label.name,
       title: displayName(label.name)
@@ -69,6 +70,7 @@ const PillBar = (() => {
     return createElement('button', {
       className: 'glt-pill' + (isActive ? ' glt-pill--active' : ''),
       type: 'button',
+      'aria-pressed': String(!!isActive),
       'data-label-id': '__all__',
       'data-label-name': '__all__',
       title: 'All Inbox'
@@ -77,10 +79,11 @@ const PillBar = (() => {
     ]);
   }
 
-  function createUnlabeledPill(hasUnread) {
+  function createUnlabeledPill(hasUnread, isActive) {
     const pill = createElement('button', {
-      className: 'glt-pill glt-pill--unlabeled',
+      className: 'glt-pill glt-pill--unlabeled' + (isActive ? ' glt-pill--active' : ''),
       type: 'button',
+      'aria-pressed': String(!!isActive),
       'data-label-id': '__unlabeled__',
       'data-label-name': '__unlabeled__',
       title: 'Unlabeled'
@@ -96,6 +99,7 @@ const PillBar = (() => {
     const pill = createElement('button', {
       className: 'glt-subpill' + (isActive ? ' glt-subpill--active' : ''),
       type: 'button',
+      'aria-pressed': String(!!isActive),
       'data-label-id': label.id,
       'data-label-name': label.name,
       title: displayName(label.name)
@@ -111,6 +115,7 @@ const PillBar = (() => {
     return createElement('button', {
       className: 'glt-subpill' + (isActive ? ' glt-subpill--active' : ''),
       type: 'button',
+      'aria-pressed': String(!!isActive),
       'data-label-id': parentLabel.id,
       'data-label-name': parentLabel.name,
       'data-sub-all': 'true'
@@ -138,7 +143,7 @@ const PillBar = (() => {
     });
 
     if (unlabeledCount !== false && unlabeledCount !== null && unlabeledCount !== undefined) {
-      row.appendChild(createUnlabeledPill(unlabeledCount));
+      row.appendChild(createUnlabeledPill(unlabeledCount, activeLabelId === '__unlabeled__'));
     }
 
     const subRow = createElement('div', {

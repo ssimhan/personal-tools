@@ -25,3 +25,21 @@ test('unread query preserves rollup and inbox scope', () => {
 test('buildGmailUrl encodes the Gmail search hash', () => {
   expect(SQ.buildGmailUrl('in:inbox label:"Friends"')).toBe('#search/in%3Ainbox%20label%3A%22Friends%22');
 });
+
+test('buildInboxUrl returns the canonical inbox hash', () => {
+  expect(SQ.buildInboxUrl()).toBe('#inbox');
+});
+
+test('queryFromGmailHash decodes a search route and ignores a thread suffix', () => {
+  const hash = SQ.buildGmailUrl('in:inbox label:"3- Career/Glean"');
+
+  expect(SQ.queryFromGmailHash(hash)).toBe('in:inbox label:"3- Career/Glean"');
+  expect(SQ.queryFromGmailHash(hash + '/thread-id')).toBeNull();
+  expect(SQ.queryFromGmailHash(hash + '/p2/thread-id')).toBeNull();
+  expect(SQ.queryFromGmailHash('#inbox')).toBeNull();
+});
+
+test('normalizeQuery makes equivalent route queries comparable', () => {
+  expect(SQ.normalizeQuery('  in:inbox   label:"Friends"  '))
+    .toBe('in:inbox label:"Friends"');
+});
