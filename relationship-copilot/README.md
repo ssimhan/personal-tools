@@ -1,6 +1,6 @@
 # Personal Relationship Copilot
 
-**Status:** Planning only. No product code has been implemented.
+**Status:** Planning complete. Phase 0 is ready; no product code has been implemented.
 
 This directory is the clean home for the new relationship-copilot product. The friend's imported CRM remains in `../crm-claude-build-personal-crm-V9261/` as a legacy reference and selective-reuse source.
 
@@ -9,7 +9,7 @@ This directory is the clean home for the new relationship-copilot product. The f
 1. Read `PROJECT_ROADMAP.md` for phase order, gates, and milestones.
 2. Read the approved discovery baseline at `../crm-claude-build-personal-crm-V9261/docs/plans/2026-07-02-relationship-copilot-discovery-design.md`.
 3. Open the matching file under `docs/plans/` before starting a phase.
-4. Begin with Phase 0 using the `build` workflow after the roadmap is approved.
+4. Begin with Phase 0 using the `build` workflow.
 
 ## Planning artifacts
 

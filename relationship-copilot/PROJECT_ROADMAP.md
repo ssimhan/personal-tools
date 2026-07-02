@@ -1,7 +1,7 @@
 # Personal Relationship Copilot Roadmap
 
 **Created:** 2026-07-02
-**Status:** Draft ready for review; implementation not started
+**Status:** Planning complete; Phase 0 ready; implementation not started
 **Approved discovery baseline:** `crm-claude-build-personal-crm-V9261/docs/plans/2026-07-02-relationship-copilot-discovery-design.md`
 
 ## Product goal
@@ -44,7 +44,7 @@ The legacy code remains a read-only reference until a reuse audit identifies a m
 
 | Phase | Name | User-visible outcome | Depends on | Status |
 |---|---|---|---|---|
-| 0 | Clean foundation and tenant boundary | Secure sign-in and an empty, multi-user-safe product shell | Approved discovery baseline | Not started |
+| 0 | Clean foundation and tenant boundary | Secure sign-in and an empty, multi-user-safe product shell | Approved discovery baseline | Ready |
 | 1 | Trusted capture and app review | Create, edit, approve, or reject a sourced proposal in the app | 0 | Not started |
 | 2 | WhatsApp capture and deep links | Text the copilot and receive a link to the exact review item | 1 | Not started |
 | 3 | Relationship memory and reminders | View trusted history, receive follow-ups, and generate an opener | 2 | Not started |
@@ -55,6 +55,10 @@ The legacy code remains a read-only reference until a reuse audit identifies a m
 | 8 | Multi-user private beta | Safe onboarding, connector health, privacy controls, observability, and recovery | 0–7 | Not started |
 
 Granola and Slack may be implemented in parallel after Phase 4 if two isolated workstreams are available. Phase 7 can begin after Phase 4 using Google-derived signals, then incorporate Granola and Slack as they land.
+
+## Current phase
+
+Discovery, architecture selection, roadmap planning, and phase-plan authoring are complete. No product code has been implemented. The next phase is **Phase 0: Clean foundation and tenant boundary**.
 
 ## Phase gates
 

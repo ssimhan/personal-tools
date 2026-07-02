@@ -1,7 +1,7 @@
 # Personal Relationship Copilot — Discovery Baseline
 
 **Date:** 2026-07-02  
-**Status:** Approved discovery baseline; roadmap and phased implementation plans drafted
+**Status:** Approved discovery baseline; roadmap and phased implementation plans merged to `main`
 **Original branch:** `design/crm-relationship-copilot` (merged)
 
 ## Purpose of this document
