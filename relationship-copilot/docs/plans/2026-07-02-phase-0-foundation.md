@@ -73,8 +73,8 @@
 
 ### Success criteria
 
-- [ ] Local Supabase starts from committed configuration.
-- [ ] `user_profiles`, `people`, `person_channels`, and `interactions` are user-owned.
+- [x] Local Supabase starts from committed configuration.
+- [x] `user_profiles`, `people`, `person_channels`, and `interactions` are user-owned.
 - [ ] Cross-user reads and writes fail under RLS.
 - [ ] Service-role repositories require an explicit owner.
 

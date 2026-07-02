@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:db": "supabase test db",
+    "test:db": "SUPABASE_TELEMETRY_DISABLED=1 supabase test db",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0"
   },

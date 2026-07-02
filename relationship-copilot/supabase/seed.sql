@@ -1,0 +1,1 @@
+-- Phase 0 keeps seed data empty. Database tests create isolated fixtures.
