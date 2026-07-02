@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { requestMagicLink } from "./actions";
+import { SubmitButton } from "./submit-button";
 
 interface LoginPageProps {
   readonly searchParams: Promise<{
@@ -47,7 +48,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             inputMode="email"
             required
           />
-          <button type="submit">Email me a sign-in link</button>
+          <SubmitButton />
         </form>
       </section>
     </main>

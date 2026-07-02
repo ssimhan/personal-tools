@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { fetchWithTimeout } from "@/infrastructure/http/fetch-with-timeout";
+
 export function createAdminClient(): SupabaseClient {
   return createClient(
     requiredEnvironment("NEXT_PUBLIC_SUPABASE_URL"),
@@ -11,6 +13,7 @@ export function createAdminClient(): SupabaseClient {
         autoRefreshToken: false,
         persistSession: false,
       },
+      global: { fetch: fetchWithTimeout },
     },
   );
 }

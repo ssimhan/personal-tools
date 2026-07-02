@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { fetchWithTimeout } from "@/infrastructure/http/fetch-with-timeout";
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -9,6 +11,7 @@ export async function proxy(request: NextRequest) {
     requiredEnvironment("NEXT_PUBLIC_SUPABASE_URL"),
     requiredEnvironment("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
     {
+      global: { fetch: fetchWithTimeout },
       cookies: {
         getAll() {
           return request.cookies.getAll();

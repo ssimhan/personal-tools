@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { applicationUrl } from "@/config/application-url";
 import { createServerClient } from "@/infrastructure/supabase/server-client";
 
 const emailSchema = z.email();
@@ -17,7 +18,7 @@ export async function requestMagicLink(formData: FormData) {
   const { error } = await client.auth.signInWithOtp({
     email: email.data,
     options: {
-      emailRedirectTo: `${applicationUrl()}/auth/confirm`,
+      emailRedirectTo: applicationUrl("/auth/confirm").toString(),
     },
   });
 
@@ -26,11 +27,4 @@ export async function requestMagicLink(formData: FormData) {
   }
 
   redirect("/login?sent=1");
-}
-
-function applicationUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000").replace(
-    /\/$/,
-    "",
-  );
 }

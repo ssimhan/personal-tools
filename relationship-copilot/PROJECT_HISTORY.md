@@ -1,5 +1,42 @@
 # Project History
 
+## 2026-07-02: Phase 0 foundation implemented
+
+### Accomplishments
+
+- Built the independent Next.js 16 application shell with the Warm + Quiet welcome, login, and protected empty states.
+- Added Supabase passwordless authentication with a custom token-hash email template and canonical redirect handling.
+- Created the user-owned core schema, deny-by-default RLS, owner-scoped repositories, and service-role boundaries.
+- Added unit, pgTAP, browser, accessibility, type, lint, build, dependency, and secret checks to CI.
+- Added explicit 10-second Supabase request deadlines with upstream cancellation and `finally` cleanup.
+- Normalized the npm lockfile from an employer-only proxy to the public npm registry and verified a clean install.
+- Kept the legacy CRM unchanged and documented all selective-reuse decisions.
+
+### Verification
+
+- Unit tests: 20 passing across 8 files.
+- Database tests: 72 passing pgTAP assertions across 3 files.
+- Browser tests: 4 passing in Chrome, including a full local Mailpit magic-link round trip.
+- Node 24.17.0 lint, typecheck, production build, npm audit, route, tenant-isolation, and secret checks pass.
+- Node 24.17.0 `npm ci --registry=https://registry.npmjs.org` passes from the normalized lockfile.
+- Manual desktop and 375px Browser inspection confirms the Warm + Quiet shell, keyboard focus, touch targets, responsive layout, and WCAG AA primary-action contrast.
+
+### Approvals and environment
+
+- Sandhya explicitly approved the `phase/0-foundation` branch and confirmed that no live CRM data migration is required.
+- Sandhya explicitly approved installing Homebrew `docker` and `colima` and starting Colima for the local Supabase verification workflow.
+- No push bypass or unapproved external write was used.
+
+### Key learnings
+
+- Static auth-route tests do not replace a real email-to-session round trip; the live test found both the template mismatch and redirect-cookie boundary.
+- Auth cookies and redirects must share one configured application origin, even when `localhost` and `127.0.0.1` both resolve locally.
+- Local Supabase tests require an explicit Docker-compatible runtime and a documented reduced-service command.
+
+### Next phase
+
+Phase 1: Trusted capture and app review, after Phase 0 passes final re-audit, closeout, and merge.
+
 ## 2026-07-02: Discovery and roadmap planning complete
 
 ### Accomplishments

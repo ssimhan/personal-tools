@@ -8,6 +8,7 @@
   --line: oklch(0.875 0.018 61);
   --coral: oklch(0.61 0.128 36);
   --coral-deep: oklch(0.52 0.13 34);
+  --coral-action-hover: oklch(0.455 0.112 34);
   --focus: oklch(0.61 0.128 36 / 0.32);
   color-scheme: light;
 }
@@ -279,7 +280,7 @@ h1 {
   margin-top: 0.35rem;
   border: 0;
   border-radius: 0.7rem;
-  background: var(--coral);
+  background: var(--coral-deep);
   color: oklch(0.985 0.008 54);
   font: inherit;
   font-weight: 700;
@@ -290,8 +291,14 @@ h1 {
 }
 
 .auth-form button:hover {
-  background: var(--coral-deep);
+  background: var(--coral-action-hover);
   transform: translateY(-1px);
+}
+
+.auth-form button:disabled {
+  cursor: wait;
+  opacity: 0.76;
+  transform: none;
 }
 
 .app-shell {

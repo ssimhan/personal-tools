@@ -1,5 +1,23 @@
 # Lessons Learned
 
+## 2026-07-02 Phase 0 foundation
+
+### Prove authentication through the actual delivery path
+
+The route and cookie adapters looked correct in isolation, but the default email template never supplied the token hash the route expected. A local Mailpit browser test that submits the form, opens the delivered link, and reaches the protected page is the durable contract.
+
+### Canonical origins are part of authentication correctness
+
+`localhost` and `127.0.0.1` are operationally similar but different cookie origins. Auth email URLs, route redirects, E2E base URLs, and deployment configuration should share one explicit application URL.
+
+### Infrastructure prerequisites belong in product documentation
+
+The local database suite was blocked until a Docker-compatible runtime was installed. Because this affects every future schema and auth change, the approved Colima setup and reduced Supabase command now live in the README and project history.
+
+### A successful cached install does not prove lockfile portability
+
+The initial lockfile captured the laptop's OpenAI-internal npm firewall in every resolved tarball URL. Host inventory plus a clean Node 24 install against `registry.npmjs.org` is the relevant closeout proof for a personal repository.
+
 ## 2026-07-02 planning session
 
 ### Separate inspiration from requirements
@@ -20,4 +38,4 @@ The roadmap contained nine plans and nearly one hundred chunks. Counting plans, 
 
 ### Planning completion is not implementation completion
 
-The new product directory contains only roadmap and plan artifacts. Current-facing documentation must repeat that no product code, connector, database, or deployment exists yet.
+At planning closeout, the new product directory contained only roadmap and plan artifacts. Current-facing documentation should always distinguish completed planning from the implementation state that exists at the time.
