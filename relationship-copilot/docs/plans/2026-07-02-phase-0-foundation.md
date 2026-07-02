@@ -76,7 +76,7 @@
 - [x] Local Supabase starts from committed configuration.
 - [x] `user_profiles`, `people`, `person_channels`, and `interactions` are user-owned.
 - [x] Cross-user reads and writes fail under RLS.
-- [ ] Service-role repositories require an explicit owner.
+- [x] Service-role repositories require an explicit owner.
 
 ### Chunk 2.1: Add the local database harness
 
@@ -142,8 +142,8 @@ Enable RLS and add owner-only select/insert/update/delete policies. Do not creat
 ### Success criteria
 
 - [x] Domain objects reject invalid identity and channel states.
-- [ ] Repositories always scope by owner.
-- [ ] No route imports a service-role client directly.
+- [x] Repositories always scope by owner.
+- [x] No route imports a service-role client directly.
 
 ### Chunk 3.1: Define core domain types
 
