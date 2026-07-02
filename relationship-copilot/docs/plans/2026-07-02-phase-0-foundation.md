@@ -75,7 +75,7 @@
 
 - [x] Local Supabase starts from committed configuration.
 - [x] `user_profiles`, `people`, `person_channels`, and `interactions` are user-owned.
-- [ ] Cross-user reads and writes fail under RLS.
+- [x] Cross-user reads and writes fail under RLS.
 - [ ] Service-role repositories require an explicit owner.
 
 ### Chunk 2.1: Add the local database harness
@@ -127,7 +127,7 @@ Enable RLS and add owner-only select/insert/update/delete policies. Do not creat
 
 - Create `relationship-copilot/supabase/tests/0002_core_rls.test.sql`
 
-**Step 1 (RED):** Seed two auth users and write tests that user A cannot select, update, delete, tag, or attach a channel to user B's person.
+**Step 1 (RED):** Seed two auth users and write tests that user A cannot select, update, delete, or attach a channel or interaction to user B's person.
 
 **Step 2:** Run `npm run test:db`; expect at least one negative assertion to expose any incomplete policy.
 
