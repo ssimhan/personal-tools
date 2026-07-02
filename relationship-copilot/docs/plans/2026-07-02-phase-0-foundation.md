@@ -22,7 +22,7 @@
 
 - [x] New app runs independently from the legacy folder.
 - [x] Test, typecheck, lint, build, and E2E scripts exist.
-- [ ] Product and design context point back to the approved discovery baseline.
+- [x] Product and design context point back to the approved discovery baseline.
 - [x] Secret files and generated Supabase state are ignored.
 
 ### Chunk 1.1: Scaffold the application and test harness
