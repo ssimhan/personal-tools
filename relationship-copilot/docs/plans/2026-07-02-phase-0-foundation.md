@@ -141,7 +141,7 @@ Enable RLS and add owner-only select/insert/update/delete policies. Do not creat
 
 ### Success criteria
 
-- [ ] Domain objects reject invalid identity and channel states.
+- [x] Domain objects reject invalid identity and channel states.
 - [ ] Repositories always scope by owner.
 - [ ] No route imports a service-role client directly.
 
