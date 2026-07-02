@@ -1,8 +1,8 @@
 # Personal Relationship Copilot — Discovery Baseline
 
 **Date:** 2026-07-02  
-**Status:** Approved discovery baseline; detailed product and technical planning deferred  
-**Branch:** `design/crm-relationship-copilot`
+**Status:** Approved discovery baseline; roadmap and phased implementation plans drafted
+**Original branch:** `design/crm-relationship-copilot` (merged)
 
 ## Purpose of this document
 
@@ -186,9 +186,14 @@ Channel selection should prefer the channel of the most recent meaningful exchan
 
 The current preference among early visual explorations is **Warm + Quiet**: warm neutral surfaces, restrained coral accents, an open-list layout, and a calm product-first hierarchy. This is directional inspiration only. A separate UI-shaping exercise is required before implementation.
 
+## Architecture decision after discovery
+
+Create a clean `relationship-copilot/` application and selectively reuse proven ideas or small modules from the friend's imported CRM. Keep `crm-claude-build-personal-crm-V9261/` unchanged as a legacy reference until each reuse candidate is characterized with tests.
+
+The new application must establish multi-user ownership, approval-before-write, source provenance, and connector isolation as foundational boundaries rather than retrofit them into the legacy single-owner workflows.
+
 ## Decisions intentionally deferred
 
-- Whether to adapt the existing app in place or rebuild parts of it
 - Exact connector and authentication strategy for every source
 - WhatsApp provider and deployment model
 - Whether future users remain independent or can share contacts, workspaces, or relationship context
@@ -209,5 +214,5 @@ When discovery resumes, continue the brainstorm at product altitude rather than 
 2. Decide which one or two enrichment sources belong in the first usable release.
 3. Shape the primary review and relationship-memory interfaces.
 4. Investigate connector feasibility and privacy constraints.
-5. Choose adapt-in-place, partial rebuild, or full rebuild based on that scoped product.
+5. Execute the approved clean-shell/selective-reuse architecture through the phased roadmap.
 6. Create a TDD-first implementation plan only after the design is approved.
