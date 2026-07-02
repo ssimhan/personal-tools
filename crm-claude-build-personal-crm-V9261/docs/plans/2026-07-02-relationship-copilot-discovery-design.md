@@ -19,7 +19,7 @@ Both are inspiration, not specifications. The supplied ZIP matches the CRM code 
 
 A personal relationship copilot that helps Sandhya capture context conversationally, maintain trustworthy memory about the people she meets, and proactively restart relationships at the right moment.
 
-The primary capture surface is a persistent WhatsApp conversation. Sandhya should be able to describe a meeting in natural language, have the system identify the person and relevant event, review every proposed detail, and save only what she confirms.
+The primary capture surface is a persistent WhatsApp conversation. Sandhya should be able to describe a meeting in natural language and have the system identify the person and relevant event. WhatsApp should then link to the relevant app screen, where Sandhya reviews every proposed detail, edits it, and saves only what she confirms.
 
 The product should then enrich that trusted record from selected communication and meeting sources, remind Sandhya when a relationship deserves attention, and draft a contextual opener without ever sending outreach automatically.
 
@@ -50,6 +50,21 @@ The system must not:
 
 Each proposal should retain its source and enough context for Sandhya to judge it.
 
+## Product architecture constraint
+
+The initial release may begin with Sandhya as its only active user, but the architecture must support multiple users in the future without reworking the core data model or security boundary.
+
+This means:
+
+- people, interactions, proposals, reminders, source records, and generated content are owned by a user;
+- database access controls enforce isolation between users;
+- email, calendar, meeting, Slack, WhatsApp, and future LinkedIn connections are authorized and stored per user;
+- ingestion jobs, review queues, reminders, and notification delivery always run in the context of the owning user;
+- source provenance and approval history remain attached to the owning user and record;
+- product configuration must not rely on one canonical account, a hard-coded email, or globally shared connector credentials.
+
+This is multi-user product readiness, not a decision to build team collaboration in the first release. Whether users can later share contacts, workspaces, or relationship context remains open.
+
 ## Example capture workflow
 
 Sandhya texts WhatsApp:
@@ -62,15 +77,18 @@ The system should:
 2. Ask only the clarifying questions needed to resolve Joan's identity.
 3. Propose structured conversation details for Joan's profile.
 4. Propose a follow-up reminder in approximately two months.
-5. Let Sandhya edit and approve every proposed detail before saving.
-6. At the due time, send a reminder containing the person, topic, relationship context, suggested channel, and a generated opener.
-7. Offer `Snooze`, `Complete`, and `Dismiss` actions.
+5. Send Sandhya a WhatsApp notification with a deep link to the exact review screen in the app.
+6. Let Sandhya inspect the source, edit each proposed detail, and approve or reject it before saving.
+7. At the due time, send a reminder containing the person, topic, relationship context, suggested channel, and a generated opener.
+8. Offer `Snooze`, `Complete`, and `Dismiss` actions.
 
 ## Review and deferral behavior
 
-WhatsApp is the primary review queue. Approval prompts should arrive immediately after capture or discovery.
+WhatsApp is the primary capture and notification channel, not the full review interface. After capture or discovery, WhatsApp should send a concise notification with a deep link to the exact proposal in the app.
 
-If Sandhya says she is busy or asks to be reminded later, unresolved proposals should move into an email digest rather than disappear. The digest format and delivery schedule are intentionally deferred for later discovery.
+The app provides the review experience. It should show the proposed person match and field-level changes, the supporting source context, and controls to edit, approve, or reject the details before saving. A user should land directly on the relevant review item rather than having to find it in a general inbox.
+
+If Sandhya says she is busy or asks to be reminded later, the unresolved proposal should remain in the app's review queue and appear in an email digest rather than disappear. The digest should link back to the relevant app review items. Its format and delivery schedule are intentionally deferred for later discovery.
 
 ## Proactive relationship attention
 
@@ -143,6 +161,8 @@ Channel selection should prefer the channel of the most recent meaningful exchan
 - Identity resolution using approved source context
 - Editable person profiles
 - A chronological relationship timeline
+- App-based proposal review with field-level editing, source context, and approve or reject controls
+- Deep links from WhatsApp and email to exact review items
 - User-approved profile and interaction updates
 - Email, calendar, Granola, and scoped WDAI Slack ingestion
 - Inferred relationship priority
@@ -150,7 +170,7 @@ Channel selection should prefer the channel of the most recent meaningful exchan
 - Contextual opener generation
 - Recommended outreach channel
 - Reminder actions: snooze, complete, dismiss
-- WhatsApp-first approvals with email-digest deferral
+- WhatsApp-first capture and notifications with app-based review and email-digest deferral
 
 ## Later possibilities
 
@@ -171,6 +191,7 @@ The current preference among early visual explorations is **Warm + Quiet**: warm
 - Whether to adapt the existing app in place or rebuild parts of it
 - Exact connector and authentication strategy for every source
 - WhatsApp provider and deployment model
+- Whether future users remain independent or can share contacts, workspaces, or relationship context
 - Data retention, transcript storage, deletion, and privacy controls
 - Confidence scoring and identity-resolution thresholds
 - Email-digest timing and format
