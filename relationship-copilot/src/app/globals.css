@@ -185,3 +185,143 @@ h1 {
     transition-duration: 0.01ms !important;
   }
 }
+
+.auth-shell {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+.auth-content {
+  width: min(100%, 32rem);
+}
+
+.auth-wordmark {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  margin-bottom: 4.5rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.auth-content h1,
+.app-empty-state h1 {
+  max-width: 14ch;
+  font-size: clamp(2.6rem, 8vw, 4.5rem);
+  line-height: 0.98;
+}
+
+.auth-summary,
+.app-empty-state > p:last-child {
+  max-width: 38rem;
+  margin: 1.5rem 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.auth-notice,
+.auth-error {
+  margin: 1.5rem 0 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.auth-notice {
+  background: oklch(0.94 0.026 133);
+  color: oklch(0.36 0.06 139);
+}
+
+.auth-error {
+  background: oklch(0.95 0.025 27);
+  color: oklch(0.43 0.11 28);
+}
+
+.auth-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 2rem;
+}
+
+.auth-form label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.auth-form input {
+  min-height: 3rem;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: oklch(0.985 0.006 67);
+  color: var(--ink);
+  font: inherit;
+}
+
+.auth-form input:focus-visible,
+.auth-form button:focus-visible,
+.auth-wordmark:focus-visible,
+.app-header a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.auth-form button {
+  min-height: 3rem;
+  margin-top: 0.35rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: var(--coral);
+  color: oklch(0.985 0.008 54);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-form button:hover {
+  background: var(--coral-deep);
+  transform: translateY(-1px);
+}
+
+.app-shell {
+  min-height: 100svh;
+}
+
+.app-header {
+  min-height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-inline: clamp(1rem, 4vw, 4rem);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.app-header a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.app-empty-state {
+  width: min(100% - 2rem, 72rem);
+  margin-inline: auto;
+  padding-block: clamp(5rem, 15vh, 10rem);
+}

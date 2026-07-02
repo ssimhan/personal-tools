@@ -189,9 +189,9 @@ Enable RLS and add owner-only select/insert/update/delete policies. Do not creat
 
 ### Success criteria
 
-- [ ] Signed-out users cannot access app routes.
-- [ ] Signed-in users resolve only their own owner ID.
-- [ ] No allowlist, canonical owner, or global bearer key exists.
+- [x] Signed-out users cannot access app routes.
+- [x] Signed-in users resolve only their own owner ID.
+- [x] No allowlist, canonical owner, or global bearer key exists.
 
 ### Chunk 4.1: Add session resolution
 
@@ -199,7 +199,7 @@ Enable RLS and add owner-only select/insert/update/delete policies. Do not creat
 
 - Create `relationship-copilot/src/infrastructure/auth/require-user.ts`
 - Create `relationship-copilot/src/infrastructure/auth/require-user.test.ts`
-- Create `relationship-copilot/src/middleware.ts`
+- Create `relationship-copilot/src/proxy.ts` (Next.js 16 replacement for `middleware.ts`)
 - Create `relationship-copilot/src/app/(auth)/login/page.tsx`
 - Create `relationship-copilot/src/app/(app)/layout.tsx`
 
